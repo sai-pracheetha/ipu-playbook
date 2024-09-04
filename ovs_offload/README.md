@@ -18,22 +18,26 @@ Check file /etc/ssh/sshd_config and change PermitRootLogin yes
 
 ### Pre-requisites:
 
-- IPU P4 pre-built artifacts can be obtained from the internal only tar package: ``hw-p4-programs.<version>.tgz``. Download this package from artifactory and extract it.
-- The compiled artifacts for P4 ``fxp-net_linux-networking`` can be found in below location after extracting the tar package ``tar -xvf hw-p4-programs.<version>.tgz``.
+- The host package ``intel-ipu-host-components-<version>.<build number>.tar.gz`` contains the example IPU P4 source code, the compiled P4 package and artifacts that can be used to setup the workload on the IMC and ACC.
+- The compiled artifacts for P4 ``fxp-net_linux-networking`` can be found in below location after extracting the tar package.
 
 ```
-> ls p4-programs/artifacts/fxp-net_linux-networking/
-total 4.7M
--rw-r--r--. 1 admin12 admin12 128K Jul 31 18:34 tdi.json
--rw-r--r--. 1 admin12 admin12  46K Jul 31 18:34 p4Info.txt
--rw-r--r--. 1 admin12 admin12 950K Jul 31 18:34 fxp-net_linux-networking.s
--rw-r--r--. 1 admin12 admin12 1.5M Jul 31 18:34 fxp-net_linux-networking.pkg
--rw-r--r--. 1 admin12 admin12 1.5M Jul 31 18:34 fxp-net_linux-networking_a791d47e422246f29ee48edaccc9da88.pkgo
--rw-r--r--. 1 admin12 admin12 638K Jul 31 18:34 context.json
+cd intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking
+
+> ls
+total 6.2M
+-rw-r--r--. 1 admin12 admin12 1.5M Aug 30 10:47 fxp-net_linux-networking_3de1c1f569bb44d69043c2fb3093d079.pkgo
+-rw-r--r--. 1 admin12 admin12  46K Sep  3 11:29 p4Info.txt
+-rw-r--r--. 1 admin12 admin12 1.4K Sep  3 11:29 entries.json
+-rw-r--r--. 1 admin12 admin12 128K Sep  3 11:29 tdi.json
+-rw-r--r--. 1 admin12 admin12 639K Sep  3 11:32 context.json
+-rw-r--r--. 1 admin12 admin12 949K Sep  3 11:32 fxp-net_linux-networking.s
+-rw-r--r--. 1 admin12 admin12 1.5M Sep  3 11:32 fxp-net_linux-networking_12d1caf7e380490b96f1df444b5050af.pkgo
+-rw-r--r--. 1 admin12 admin12 1.5M Sep  3 11:32 fxp-net_linux-networking.pkg
 
 ```
 
-- Load the P4 package ``fxp-net_linux-networking.pkg`` on the IMC. Refer document [IPU P4 Quickstart Guide](https://edc.intel.com/content/www/us/en/secure/design/confidential/products-and-solutions/networking-and-io/infrastructure-processing-unit-software-user-guide/ipu-p4-quick-start-guide/#load-the-p4-package)
+- Load the P4 package ``fxp-net_linux-networking.pkg`` on the IMC. Refer Section ``IPU P4 Quickstart Guide`` in the Intel® Infrastructure Processing Unit Software User Guide
 - Copy the P4 artifacts folder for the specific release version being tested to the IMC and then to the ACC location ``/opt/p4/p4sde/p4_test/fxp-net_linux-networking``.
 
 - Make sure the same version of IDPF driver is loaded on the Host, IMC and ACC, run commands below as a root user
