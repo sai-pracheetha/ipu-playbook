@@ -4,7 +4,7 @@
 
 - The ovs_offload_lnw.py script can be used on an host server connected with Intel® Infrastructure Processing Unit via PCIe.
 - It creates the configuration to run the Linux Networking Recipe with OVS Offload on the ACC.
-- It can be used to start infrap4d on the ACC and use the script generated p4rt-ctl rules to configure ACC Port representors for the Host IDPF interfaces and IPU Physical Ports. 
+- It can be used to start infrap4d on the ACC and use the script generated p4rt-ctl rules to configure ACC Port representors for the Host IDPF interfaces and IPU Physical Ports.
 - It can setup OVS bridges on the ACC using the port representors and configure VMs on the IDPF interfaces on the Host.
 
 ## Test Environment Setup:
@@ -156,7 +156,7 @@ source venv/bin/activate
 
 ### ovs_offload_lnw.py : (P4:fxp-net_linux-networking.p4, IPU SDK Release >= 1.7.0)
 
-1. This is a python script : **ovs_offload/ovs_offload_lnw.py** that can be used with **P4: fxp-net_linux-networking.p4** for release 1.7.0
+1. This is a python script : **ovs_offload/ovs_offload_lnw.py** that can be used with **P4: fxp-net_linux-networking.p4** for release 1.7.0 and later
 ```
 > python ovs_offload_lnw.py
 usage: ovs_offload_lnw.py [-h] {create_script,copy_script,setup,teardown} ...
