@@ -94,12 +94,10 @@ ovs-vsctl add-port br-tun-{vf_list[i]} {acc_pr_list[i]}
         else:
             vf = get_interface_info(server_name='host', interface_name=vf_list[i])
             acc_pr = get_interface_info(server_name='acc', interface_name=acc_pr_list[i])
-            #print(vf)
-            #print(acc_pr)
             vf_to_acc += f"""echo ""
 echo "Host IDPF Interface {vf_list[i]} MAC ({vf['mac']})  VSI ({vf['vsi_id']}:{vf['vsi_num']})  PORT ({vf['port']}) maps to"
 echo "ACC  IDPF Interface {acc_pr_list[i]} MAC ({acc_pr['mac']})  VSI ({acc_pr['vsi_id']}:{acc_pr['vsi_num']})  PORT ({acc_pr['port']})"
-p4rt-ctl add-entry br0 linux_networking_control.tx_source_port_v4 "vmeta.common.vsi={vf['vsi_num']},zero_padding=0,action=linux_networking_control.set_source_port({vf['port']})"
+p4rt-ctl add-entry br0 linux_networking_control.tx_source_port "vmeta.common.vsi={vf['vsi_num']}/2047,priority=1,action=linux_networking_control.set_source_port({vf['port']})"
 p4rt-ctl add-entry br0 linux_networking_control.source_port_to_pr_map "user_meta.cmeta.source_port={vf['port']},zero_padding=0,action=linux_networking_control.fwd_to_vsi({acc_pr['port']})"
 p4rt-ctl add-entry br0 linux_networking_control.tx_acc_vsi "vmeta.common.vsi={acc_pr['vsi_num']},zero_padding=0,action=linux_networking_control.l2_fwd_and_bypass_bridge({vf['port']})"
 p4rt-ctl add-entry br0 linux_networking_control.vsi_to_vsi_loopback "vmeta.common.vsi={acc_pr['vsi_num']},target_vsi={vf['vsi_num']},action=linux_networking_control.fwd_to_vsi({vf['port']})"
@@ -139,19 +137,19 @@ ip netns exec VM{vm_id} ip -br a
         mac_list.append(str(acc_pr['mac']))
 
 
-    misc = """p4rt-ctl add-entry br0 linux_networking_control.ipv4_lpm_root_lut "user_meta.cmeta.bit32_zeros=4/255.255.255.255,priority=65535,action=linux_networking_control.ipv4_lpm_root_lut_action(0)"
-p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=0,action=linux_networking_control.bypass"
-p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=1,action=linux_networking_control.bypass"
-p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=2,action=linux_networking_control.bypass"
-p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=3,action=linux_networking_control.bypass"
-p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=4,action=linux_networking_control.bypass"
-p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=5,action=linux_networking_control.bypass"
-p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=6,action=linux_networking_control.bypass"
-p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=7,action=linux_networking_control.bypass"
+    misc = """p4rt-ctl add-entry br0 linux_networking_control.ipv4_lpm_root_lut "user_meta.cmeta.bit16_zeros=4/65535,priority=2048,action=linux_networking_control.ipv4_lpm_root_lut_action(0)"
+p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=0/7,priority=1,action=linux_networking_control.bypass"
+p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=1/7,priority=1,action=linux_networking_control.bypass"
+p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=2/7,priority=1,action=linux_networking_control.bypass"
+p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=3/7,priority=1,action=linux_networking_control.bypass"
+p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=4/7,priority=1,action=linux_networking_control.bypass"
+p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=5/7,priority=1,action=linux_networking_control.bypass"
+p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=6/7,priority=1,action=linux_networking_control.bypass"
+p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=7/7,priority=1,action=linux_networking_control.bypass"
 """
 
     acc_path = test_config['test_params']['acc_path']
-    acc_p4_path = f'{acc_path}/fxp-net_linux-networking-v2'
+    acc_p4_path = f'{acc_path}/fxp-net_linux-networking'
     file = f'{path}/es2k_skip_p4.conf'
     p4_config = 'cat <<EOF > ./'+file+'''
 {
@@ -173,7 +171,7 @@ p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.l
             "eal-args": "--lcores=1-2 -a 00:01.6,vport=[0-1] -- -i --rxq=1 --txq=1 --hairpinq=1 --hairpin-mode=0x0",
             "p4_programs": [
                 {
-                    "program-name": "fxp-net_linux-networking-v2",
+                    "program-name": "fxp-net_linux-networking",
                     "tdi-config": "'''+acc_p4_path+'''/tdi.json",
                     "p4_pipelines": [
                         {
@@ -262,12 +260,12 @@ export DEPEND_INSTALL=\$P4CP_INSTALL
 export OUTPUT_DIR='''+acc_p4_path+'''
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
 
-tdi_pipeline_builder --p4c_conf_file=/usr/share/stratum/es2k/es2k_skip_p4.conf --bf_pipeline_config_binary_file=\$OUTPUT_DIR/fxp-net_linux-networking-v2.pb.bin
+tdi_pipeline_builder --p4c_conf_file=/usr/share/stratum/es2k/es2k_skip_p4.conf --tdi_pipeline_config_binary_file=\$OUTPUT_DIR/fxp-net_linux-networking.pb.bin
 
 sleep 2
 echo ""
 echo "Use p4rt-ctl set-pipe to setup the runtime pipeline"
-p4rt-ctl set-pipe br0 \$OUTPUT_DIR/fxp-net_linux-networking-v2.pb.bin \$OUTPUT_DIR/p4Info.txt
+p4rt-ctl set-pipe br0 \$OUTPUT_DIR/fxp-net_linux-networking.pb.bin \$OUTPUT_DIR/p4Info.txt
 sleep 2
 echo ""
 echo "Get IDPF Interface MAC and VSI info from IMC command : cli_client -q -c"
@@ -337,9 +335,9 @@ p4rt-ctl dump-entries br0 linux_networking_control.rx_source_port
 
 #Run the p4rt-ctl dump-entries to display the table entries
 echo ""
-echo "Dump linux_networking_control.tx_source_port_v4 entries:"
-echo "p4rt-ctl dump-entries br0 linux_networking_control.tx_source_port_v4"
-p4rt-ctl dump-entries br0 linux_networking_control.tx_source_port_v4
+echo "Dump linux_networking_control.tx_source_port entries:"
+echo "p4rt-ctl dump-entries br0 linux_networking_control.tx_source_port"
+p4rt-ctl dump-entries br0 linux_networking_control.tx_source_port
 sleep 1
 
 echo ""

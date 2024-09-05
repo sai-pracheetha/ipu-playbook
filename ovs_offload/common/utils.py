@@ -63,7 +63,7 @@ def ssh_command(server_name, command, output=True, check_returncode=True):
     return {'rc': 0, 'output': output}
 
 
-def copy_scripts(host_path='lnv_ovs_scripts', imc_path = '/mnt/imc/p4_test', acc_path = '/opt/p4/p4sde/p4_test'):
+def copy_scripts(host_path='ovs_offload_lnw_scripts', imc_path = '/mnt/imc/p4_test', acc_path = '/opt/p4/p4sde/p4_test'):
     """
     Copies configuration scripts from the host to the IMC and then to the ACC.
 
@@ -87,7 +87,6 @@ def copy_scripts(host_path='lnv_ovs_scripts', imc_path = '/mnt/imc/p4_test', acc
         print(f"Failed with exception:\n{e}")
 
     # Copy the configuration scripts from host to IMC
-    #command = f'scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r {host_path}  root@100.0.0.100:{imc_path}/'
     command = f'scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r {host_path}  root@{imc_ip}:{imc_path}/'
     try:
         result = ssh_command('host', command)
@@ -101,7 +100,6 @@ def copy_scripts(host_path='lnv_ovs_scripts', imc_path = '/mnt/imc/p4_test', acc
         print(f"Failed with exception:\n{e}")
 
     # Copy the configuration scripts from IMC to ACC
-    #command = f'scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r {imc_path}/{host_path} root@192.168.0.2:{acc_path}/'
     command = f'scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -r {imc_path}/{host_path} root@{acc_ip}:{acc_path}/'
     try:
         result = ssh_command('imc', command)
@@ -215,9 +213,7 @@ def ping_test(dst_ip, count=4, vm = None):
     else:
         cmd = f"ping {dst_ip} -c {count}"
     try:
-        #result = ssh_command('host', cmd)
         result = run_cmd(cmd, output=True)
-        #print(f"cmd:{cmd}")
         pkt_loss = 100
         if result:
             match = re.search('(\d*)% packet loss', result)

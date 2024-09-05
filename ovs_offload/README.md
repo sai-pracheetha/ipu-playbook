@@ -2,9 +2,10 @@
 
 ## Introduction:
 
-The tool ovs_offload_lnv.py can be used to generate the workload configuration scripts to run the Linux Networking Recipe with OVS Offload.
-The configuration scripts can be used to start infrap4d on the ACC, use the script generated p4rt-ctl rules to configure ACC Port representors,
-configure OVS and create OVS bridges and configure VMs on the IDPF interfaces on the Host.
+- The ovs_offload_lnw.py script can be used on an host server connected with Intel® Infrastructure Processing Unit via PCIe.
+- It creates the configuration to run the Linux Networking Recipe with OVS Offload on the ACC.
+- It can be used to start infrap4d on the ACC and use the script generated p4rt-ctl rules to configure ACC Port representors for the Host IDPF interfaces and IPU Physical Ports. 
+- It can setup OVS bridges on the ACC using the port representors and configure VMs on the IDPF interfaces on the Host.
 
 ## Test Environment Setup:
 
@@ -102,7 +103,7 @@ acc:
 
 test_params:
     #path fields specify the location where the configuration scripts will be copied to on the Host,IMC and ACC
-    host_path: 'lnv_ovs_scripts'
+    host_path: 'ovs_offload_lnw_scripts'
     imc_path: '/mnt/imc/p4_test'
     acc_path:  '/opt/p4/p4sde/p4_test'
     # Update the correct IDPF Interface on the Host
@@ -144,7 +145,7 @@ python -m venv --copies venv
 PyYAML
 ```
 
-- Run python script **ovs_offload_lnv.py** as a root user.
+- Run python script **ovs_offload_lnw.py** as a root user.
 ```
 sudo -i
 cd networking.ipu.software.customer-enabling.validation/ipu_examples/workloads/p4/ovs_offload
@@ -153,12 +154,12 @@ source venv/bin/activate
 
 ## Test Script:
 
-### ovs_offload_lnv.py : (P4:fxp-net_linux-networking.p4, IPU SDK Release >= 1.7.0)
+### ovs_offload_lnw.py : (P4:fxp-net_linux-networking.p4, IPU SDK Release >= 1.7.0)
 
-1. This is a python script : **ovs_offload/ovs_offload_lnv.py** that can be used with **P4: fxp-net_linux-networking.p4** for release 1.7.0
+1. This is a python script : **ovs_offload/ovs_offload_lnw.py** that can be used with **P4: fxp-net_linux-networking.p4** for release 1.7.0
 ```
-> python ovs_offload_lnv.py
-usage: ovs_offload_lnv.py [-h] {create_script,copy_script,setup,teardown} ...
+> python ovs_offload_lnw.py
+usage: ovs_offload_lnw.py [-h] {create_script,copy_script,setup,teardown} ...
 
 Run Linux networking with OVS Offload
 
@@ -176,14 +177,14 @@ optional arguments:
   -h, --help            show this help message and exit
 ```
 
-2. create_script: This will create the configuration scripts in the script directory (can be changes in **host_path** in **config.yaml**) at **ovs_offload/lnv_ovs_scripts**
+2. create_script: This will create the configuration scripts in the script directory (can be changes in **host_path** in **config.yaml**) at **ovs_offload/ovs_offload_lnw_scripts**
 ```
-> python ovs_offload_lnv.py create_script
+> python ovs_offload_lnw.py create_script
 ```
 
 The scripts will be created as shown below.
 ```
-> ls networking.ipu.software.customer-enabling.validation/ipu_examples/workloads/p4/ovs_offload/lnv_ovs_scripts/
+> ls networking.ipu.software.customer-enabling.validation/ipu_examples/workloads/p4/ovs_offload/ovs_offload_lnw_scripts/
 total 60K
 -rwxr-xr-x. 1 admin12 admin12 1.6K Aug 28 13:37 es2k_skip_p4.conf
 -rwxr-xr-x. 1 admin12 admin12  375 Aug 28 13:37 1_host_idpf.sh
@@ -197,15 +198,15 @@ total 60K
 -rwxr-xr-x. 1 admin12 admin12 2.8K Aug 28 13:37 7_host_vm.sh
 ```
 
-3. copy_script: This will create the configuration scripts in the script directory (can be changes in **host_path** in **config.yaml**) at **ovs_offload/lnv_ovs_scripts** and also copy it to the ACC to the acc_path field provided in the **config file:config.yaml**
+3. copy_script: This will create the configuration scripts in the script directory (can be changes in **host_path** in **config.yaml**) at **ovs_offload/ovs_offload_lnw_scripts** and also copy it to the ACC to the acc_path field provided in the **config file:config.yaml**
 ```
-> python ovs_offload_lnv.py copy_script
+> python ovs_offload_lnw.py copy_script
 ```
 
 4. setup:
 
 ```
-> python ovs_offload_lnv.py setup
+> python ovs_offload_lnw.py setup
 ```
 - This will setup the complete OVS offload recipe.
 - Configure TMUX session - test1_infrap4d, login to ACC and launch infrap4d,
@@ -231,7 +232,7 @@ ctrl+b d
 4. teardown:
 
 ```
-> python ovs_offload_lnv.py teardown
+> python ovs_offload_lnw.py teardown
 ```
 - This will teardown the complete OVS offload recipe.
 - Pre-Requisite: run copy_script option once for scripts to be available in ACC
@@ -240,14 +241,14 @@ ctrl+b d
 - Configure TMUX session - test1_infrap4d, login to ACC and stop infrap4d,
 
 
-### ovs_offload_lnv3.py : (P4:fxp-net_linux-networking_v3.p4, IPU SDK Release 1.6.0, 1.6.1)
+### ovs_offload_lnw_v3.py : (P4:fxp-net_linux-networking_v3.p4, IPU SDK Release 1.6.0, 1.6.1)
 
-1. This is a python script : **ovs_offload/ovs_offload_lnv3.py** that can be used with **P4: fxp-net_linux-networking_v3.p4** for release 1.6.0,1.6.1
+1. This is a python script : **ovs_offload/ovs_offload_lnw_v3.py** that can be used with **P4: fxp-net_linux-networking_v3.p4** for release 1.6.0,1.6.1
 ```
-> python ovs_offload_lnv3.py
-usage: ovs_offload_lnv3.py [-h] {create_script,copy_script,setup,teardown} ...
+> python ovs_offload_lnw_v3.py
+usage: ovs_offload_lnw_v3.py [-h] {create_script,copy_script,setup,teardown} ...
 
-Run Linux networking with OVS Offload
+Run Linux networking V3 with OVS Offload
 
 positional arguments:
   {create_script,copy_script,setup,teardown}
@@ -263,14 +264,14 @@ optional arguments:
   -h, --help            show this help message and exit
 ```
 
-### ovs_offload_lnv2.py: (P4:fxp-net_linux-networking_v2.p4, IPU SDK Release 1.4.0)
+### ovs_offload_lnw_v2.py: (P4:fxp-net_linux-networking_v2.p4, IPU SDK Release 1.4.0)
 
-1. This is a python script : **ovs_offload/scripts/ovs_offload_lnv2.py** that can be used with **P4: fxp-net_linux-networking_v2.p4** for release 1.4.0
+1. This is a python script : **ovs_offload/scripts/ovs_offload_lnw_v2.py** that can be used with **P4: fxp-net_linux-networking_v2.p4** for release 1.4.0
 ```
-> python ovs_offload_lnv2.py
-usage: ovs_offload_lnv2.py [-h] {create_script,copy_script,setup,teardown} ...
+> python ovs_offload_lnw_v2.py
+usage: ovs_offload_lnw_v2.py [-h] {create_script,copy_script,setup,teardown} ...
 
-Run Linux networking with OVS Offload
+Run Linux networking V2 with OVS Offload
 
 positional arguments:
   {create_script,copy_script,setup,teardown}
@@ -291,7 +292,7 @@ optional arguments:
 - Follow the instructions below to run the Recipe on the ACC with the help of configuration scripts or.
 - Run the tool with setup option.
 ```
-> python ovs_offload_lnv.py setup
+> python ovs_offload_lnw.py setup
 ```
 
 ### 1. IPU P4 Artifacts on ACC
@@ -304,20 +305,20 @@ optional arguments:
 
 ### 2. Infrap4d Configuration file
 
-- Copy the infrap4d config in **/opt/p4/p4sde/p4_test/lnv_ovs_scripts/es2k_skip_p4.conf** to artifact folder **/opt/p4/p4sde/p4_test/fxp-net_linux-networking** in the ACC
+- Copy the infrap4d config in **/opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts/es2k_skip_p4.conf** to artifact folder **/opt/p4/p4sde/p4_test/fxp-net_linux-networking** in the ACC
 ```
-[root@ipu-acc ~]# cp /opt/p4/p4sde/p4_test/lnv_ovs_scripts/es2k_skip_p4.conf /opt/p4/p4sde/p4_test/fxp-net_linux-networking/
+[root@ipu-acc ~]# cp /opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts/es2k_skip_p4.conf /opt/p4/p4sde/p4_test/fxp-net_linux-networking/
 ```
 
 ### 3. Start Infrap4d
 
-- Use the lnv_ovs_scripts in the ACC to setup infrap4d, p4rt and OVS bridge:
+- Use the ovs_offload_lnw_scripts in the ACC to setup infrap4d, p4rt and OVS bridge:
 
 - ACC Terminal 1 : Setup environment and start Infrap4d
 ```
-[root@ipu-acc ~]# cd /opt/p4/p4sde/p4_test/lnv_ovs_scripts
+[root@ipu-acc ~]# cd /opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts
 
-[root@ipu-acc lnv_ovs_scripts]# ./2_acc_infrap4d.sh
+[root@ipu-acc ovs_offload_lnw_scripts]# ./2_acc_infrap4d.sh
 ```
 
 - Wait for infrap4d to initialize and start listening on the server.
@@ -347,45 +348,45 @@ E20240414 00:03:48.469659 293611 es2k_hal.cc:276] [secure mode] Stratum external
 
 - ACC Terminal 2 : Setup p4rt-ctl pipeline and setup the runtime rules.
 ```
-[root@ipu-acc lnv_ovs_scripts]# pwd
-/opt/p4/p4sde/p4_test/lnv_ovs_scripts
+[root@ipu-acc ovs_offload_lnw_scripts]# pwd
+/opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts
 
-[root@ipu-acc lnv_ovs_scripts]# ./3_acc_p4rt.sh
+[root@ipu-acc ovs_offload_lnw_scripts]# ./3_acc_p4rt.sh
 ```
 
 - ACC Terminal 2 : Dump the p4rt-ctl runtime rules.
 ```
-[root@ipu-acc lnv_ovs_scripts]# pwd
-/opt/p4/p4sde/p4_test/lnv_ovs_scripts
+[root@ipu-acc ovs_offload_lnw_scripts]# pwd
+/opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts
 
-[root@ipu-acc lnv_ovs_scripts]# ./4_acc_p4rt_dump.sh
+[root@ipu-acc ovs_offload_lnw_scripts]# ./4_acc_p4rt_dump.sh
 ```
 
 ### 4. Setup ACC environment for OVS
 
 - ACC Terminal 2 : Setup the OVS Environment.
 ```
-[root@ipu-acc lnv_ovs_scripts]# pwd
-/opt/p4/p4sde/p4_test/lnv_ovs_scripts
+[root@ipu-acc ovs_offload_lnw_scripts]# pwd
+/opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts
 
-[root@ipu-acc lnv_ovs_scripts]# ./5_acc_setup_ovs.sh
+[root@ipu-acc ovs_offload_lnw_scripts]# ./5_acc_setup_ovs.sh
 ```
 
 ### 5. Setup OVS Bridge Configuration
 
 - ACC Terminal 2 : Setup the OVS Bridge Config
 ```
-[root@ipu-acc lnv_ovs_scripts]# pwd
-/opt/p4/p4sde/p4_test/lnv_ovs_scripts
+[root@ipu-acc ovs_offload_lnw_scripts]# pwd
+/opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts
 
-[root@ipu-acc lnv_ovs_scripts]# ./6_acc_ovs_bridge.sh
+[root@ipu-acc ovs_offload_lnw_scripts]# ./6_acc_ovs_bridge.sh
 ```
 
 ### 6. Setup VMs on the IPU Host and configure link partner interface:
 
 - IPU HOST Terminal 1 : Configure the VMs on the IPU Host the script below uses **ip netns**
 ```
-[root@host]# cd ovs_offload/scripts/lnv_ovs_scripts
+[root@host]# cd ovs_offload/scripts/ovs_offload_lnw_scripts
 [root@host]# ./7_host_vm.sh
 ```
 
@@ -413,10 +414,10 @@ ip netns exec VM4 ping 20.0.0.30
 
 - This configuration script will setup OVS VXLAN Bridges.
 ```
-[root@ipu-acc lnv_ovs_scripts]# pwd
-/opt/p4/p4sde/p4_test/lnv_ovs_scripts
+[root@ipu-acc ovs_offload_lnw_scripts]# pwd
+/opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts
 
-[root@ipu-acc lnv_ovs_scripts]# ./acc_ovs_vxlan.sh
+[root@ipu-acc ovs_offload_lnw_scripts]# ./acc_ovs_vxlan.sh
 ```
 
 - Stop firewalld on IPU Host and the ACC
@@ -464,11 +465,11 @@ echo "Verify the Configure interfaces"
 - Run a Ping Test
 
 ```
-[root@host lnv_ovs_scripts]# ip netns exec VM0 ip -br a
+[root@host ovs_offload_lnw_scripts]# ip netns exec VM0 ip -br a
 lo               DOWN
 ens5f0v0         UP             10.0.0.10/24 fe80::21a:ff:fe00:314/64
 
-[root@host lnv_ovs_scripts]# ip -br a
+[root@host ovs_offload_lnw_scripts]# ip -br a
 lo               UNKNOWN        127.0.0.1/8 ::1/128
 eno8303          UP             10.232.27.29/23 fe80::c6cb:e1ff:fea7:3c82/64
 eno8403          UP             100.0.0.1/24
@@ -481,7 +482,7 @@ ens5f0d3         UP
 TEP10            UNKNOWN        10.1.1.2/24 fe80::fcf2:f4ff:fe2a:18f4/64
 vxlan10          UNKNOWN        10.0.0.30/24 fe80::7c76:4ff:fe03:8591/64
 
-[root@host lnv_ovs_scripts]# ip netns exec VM0 ping 10.0.0.30
+[root@host ovs_offload_lnw_scripts]# ip netns exec VM0 ping 10.0.0.30
 PING 10.0.0.30 (10.0.0.30) 56(84) bytes of data.
 64 bytes from 10.0.0.30: icmp_seq=1 ttl=64 time=0.072 ms
 64 bytes from 10.0.0.30: icmp_seq=2 ttl=64 time=0.047 ms
@@ -491,7 +492,7 @@ PING 10.0.0.30 (10.0.0.30) 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 2028ms
 rtt min/avg/max/mdev = 0.041/0.053/0.072/0.013 ms
 
-[root@host lnv_ovs_scripts]# ping 10.0.0.10
+[root@host ovs_offload_lnw_scripts]# ping 10.0.0.10
 PING 10.0.0.10 (10.0.0.10) 56(84) bytes of data.
 64 bytes from 10.0.0.10: icmp_seq=1 ttl=64 time=0.058 ms
 64 bytes from 10.0.0.10: icmp_seq=2 ttl=64 time=0.046 ms
@@ -507,7 +508,7 @@ rtt min/avg/max/mdev = 0.040/0.048/0.058/0.007 ms
 ### OVS Offload VXLAN on 2 IPU Peers Connected back to back:
 
 - Ideally OVS Offload with VXLAN can be run with 2 IPU Peer Setups connected back to back.
-- Run python script **ovs_offload_lnv.py** as a root user on the 2 peer IPU Hosts to generate the configuration.
+- Run python script **ovs_offload_lnw.py** as a root user on the 2 peer IPU Hosts to generate the configuration.
 - Update the config.yaml for OVS VXLAN for IPU 1 Setup.
 ```
 > cat config.yaml
@@ -548,7 +549,7 @@ test_params:
 
 - Run the tool with option **teardown**
 ```
-> python ovs_offload_lnv.py teardown
+> python ovs_offload_lnw.py teardown
 ```
 
 or
@@ -602,12 +603,12 @@ ovs-vsctl show
 
 - ACC Terminal 2: Delete the p4rt-ctl runtime rules
 ```
-[root@ipu-acc lnv_ovs_scripts]# pwd
-/opt/p4/p4sde/p4_test/lnv_ovs_scripts
+[root@ipu-acc ovs_offload_lnw_scripts]# pwd
+/opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts
 
-[root@ipu-acc lnv_ovs_scripts]# ./acc_p4rt_delete.sh
+[root@ipu-acc ovs_offload_lnw_scripts]# ./acc_p4rt_delete.sh
 
-[root@ipu-acc lnv_ovs_scripts]# ./4_acc_p4rt_dump.sh
+[root@ipu-acc ovs_offload_lnw_scripts]# ./4_acc_p4rt_dump.sh
 ```
 
 - ACC Terminal 1: Terminate the infrap4d

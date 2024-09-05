@@ -94,8 +94,6 @@ ovs-vsctl add-port br-tun-{vf_list[i]} {acc_pr_list[i]}
         else:
             vf = get_interface_info(server_name='host', interface_name=vf_list[i])
             acc_pr = get_interface_info(server_name='acc', interface_name=acc_pr_list[i])
-            #print(vf)
-            #print(acc_pr)
             vf_to_acc += f"""echo ""
 echo "Host IDPF Interface {vf_list[i]} MAC ({vf['mac']})  VSI ({vf['vsi_id']}:{vf['vsi_num']})  PORT ({vf['port']}) maps to"
 echo "ACC  IDPF Interface {acc_pr_list[i]} MAC ({acc_pr['mac']})  VSI ({acc_pr['vsi_id']}:{acc_pr['vsi_num']})  PORT ({acc_pr['port']})"
@@ -563,7 +561,7 @@ EOF
 
 def build_args():
     # Create the top-level parser
-    parser = argparse.ArgumentParser(description='Run Linux networking with OVS Offload')
+    parser = argparse.ArgumentParser(description='Run Linux networking V3 with OVS Offload')
     subparsers = parser.add_subparsers(dest='command', help='options')
     # Create the parser for the "create_script" command
     parser_create_script = subparsers.add_parser('create_script', help='Generate configuration scripts in localhost')
