@@ -611,7 +611,7 @@ if __name__ == "__main__":
 
     elif args.command == 'setup':
 
-        if host_password == '':
+        if len(host_password) == 0:
             print("Enter correct IPU Host SSH root password in config.yaml and retry")
             sys.exit()
 
@@ -680,7 +680,7 @@ if __name__ == "__main__":
 
     elif args.command == 'teardown':
 
-        if host_password == '':
+        if len(host_password) == 0:
             print("Enter correct IPU Host root password in config.yaml and retry")
             sys.exit()
 
