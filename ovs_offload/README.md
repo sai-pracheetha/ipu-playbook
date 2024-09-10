@@ -51,6 +51,7 @@ lsmod | grep idpf
 modinfo idpf
 echo 8 > /sys/class/net/ens5f0/device/sriov_numvfs
 ```
+
 - Replace `ens5f0` above with the correct Host IDPF Interface to create 8 SR-IOV VFs on the Host.
 - The tool uses tmux session when running the option setup and option teardown. Install TMUX on the IPU Host.
 
@@ -162,145 +163,145 @@ source venv/bin/activate
 
 1. This is a python script : **ovs_offload/ovs_offload_lnw.py** that can be used with **P4: fxp-net_linux-networking.p4** for release 1.7.0 and later
 
-```bash
-> python ovs_offload_lnw.py
-usage: ovs_offload_lnw.py [-h] {create_script,copy_script,setup,teardown} ...
+    ```bash
+    > python ovs_offload_lnw.py
+    usage: ovs_offload_lnw.py [-h] {create_script,copy_script,setup,teardown} ...
 
-Run Linux networking with OVS Offload
+    Run Linux networking with OVS Offload
 
-positional arguments:
-  {create_script,copy_script,setup,teardown}
-                        options
-    create_script       Generate configuration scripts in localhost
-    copy_script         Copy configuration scripts to IMC and ACC
-    setup               Setup the complete OVS offload Recipe, pre-requisite: run copy_script option once for
-                        scripts to be available in ACC
-    teardown            Teardown the complete OVS offload Recipe, pre-requisite: run copy_script option once
-                        for scripts to be available in ACC
+    positional arguments:
+      {create_script,copy_script,setup,teardown}
+                            options
+        create_script       Generate configuration scripts in localhost
+        copy_script         Copy configuration scripts to IMC and ACC
+        setup               Setup the complete OVS offload Recipe, pre-requisite: run copy_script option once for
+                            scripts to be available in ACC
+        teardown            Teardown the complete OVS offload Recipe, pre-requisite: run copy_script option once
+                            for scripts to be available in ACC
 
-optional arguments:
-  -h, --help            show this help message and exit
-```
+    optional arguments:
+      -h, --help            show this help message and exit
+    ```
 
 2. create_script: This will create the configuration scripts in the script directory (can be changes in **host_path** in **config.yaml**) at **ovs_offload/ovs_offload_lnw_scripts**
 
-```bash
-> python ovs_offload_lnw.py create_script
-```
+    ```bash
+    > python ovs_offload_lnw.py create_script
+    ```
 
-The scripts will be created as shown below.
+    The scripts will be created as shown below.
 
-```bash
-> ls networking.ipu.software.customer-enabling.validation/ipu_examples/workloads/p4/ovs_offload/ovs_offload_lnw_scripts/
-total 60K
--rwxr-xr-x. 1 admin12 admin12 1.6K Aug 28 13:37 es2k_skip_p4.conf
--rwxr-xr-x. 1 admin12 admin12  375 Aug 28 13:37 1_host_idpf.sh
--rwxr-xr-x. 1 admin12 admin12 1.3K Aug 28 13:37 2_acc_infrap4d.sh
--rwxr-xr-x. 1 admin12 admin12  12K Aug 28 13:37 3_acc_p4rt.sh
--rwxr-xr-x. 1 admin12 admin12 8.4K Aug 28 13:37 acc_p4rt_delete.sh
--rwxr-xr-x. 1 admin12 admin12 2.0K Aug 28 13:37 4_acc_p4rt_dump.sh
--rwxr-xr-x. 1 admin12 admin12 1.3K Aug 28 13:37 5_acc_setup_ovs.sh
--rwxr-xr-x. 1 admin12 admin12 2.1K Aug 28 13:37 6_acc_ovs_bridge.sh
--rwxr-xr-x. 1 admin12 admin12 6.1K Aug 28 13:37 acc_ovs_vxlan.sh
--rwxr-xr-x. 1 admin12 admin12 2.8K Aug 28 13:37 7_host_vm.sh
-```
+    ```bash
+    > ls networking.ipu.software.customer-enabling.validation/ipu_examples/workloads/p4/ovs_offload/ovs_offload_lnw_scripts/
+    total 60K
+    -rwxr-xr-x. 1 admin12 admin12 1.6K Aug 28 13:37 es2k_skip_p4.conf
+    -rwxr-xr-x. 1 admin12 admin12  375 Aug 28 13:37 1_host_idpf.sh
+    -rwxr-xr-x. 1 admin12 admin12 1.3K Aug 28 13:37 2_acc_infrap4d.sh
+    -rwxr-xr-x. 1 admin12 admin12  12K Aug 28 13:37 3_acc_p4rt.sh
+    -rwxr-xr-x. 1 admin12 admin12 8.4K Aug 28 13:37 acc_p4rt_delete.sh
+    -rwxr-xr-x. 1 admin12 admin12 2.0K Aug 28 13:37 4_acc_p4rt_dump.sh
+    -rwxr-xr-x. 1 admin12 admin12 1.3K Aug 28 13:37 5_acc_setup_ovs.sh
+    -rwxr-xr-x. 1 admin12 admin12 2.1K Aug 28 13:37 6_acc_ovs_bridge.sh
+    -rwxr-xr-x. 1 admin12 admin12 6.1K Aug 28 13:37 acc_ovs_vxlan.sh
+    -rwxr-xr-x. 1 admin12 admin12 2.8K Aug 28 13:37 7_host_vm.sh
+    ```
 
 3. copy_script: This will create the configuration scripts in the script directory (can be changes in **host_path** in **config.yaml**) at **ovs_offload/ovs_offload_lnw_scripts** and also copy it to the ACC to the acc_path field provided in the **config file:config.yaml**
 
-```bash
-> python ovs_offload_lnw.py copy_script
-```
+    ```bash
+    > python ovs_offload_lnw.py copy_script
+    ```
 
 4. setup:
 
-```bash
-> python ovs_offload_lnw.py setup
-```
+    ```bash
+    > python ovs_offload_lnw.py setup
+    ```
 
-- This will setup the complete OVS offload recipe.
-- Configure TMUX session - test1_infrap4d, login to ACC and launch infrap4d,
-- Configure TMUX session - test2_p4rt configure the p4rt-ctl rules, configure OVS bridges
-- Configure TMUX session - test3_host configure the VMs on Host IDPF interface and link partner.
-- Run a ping test to check the forwarding.
-- After running the setup option we can login to each of the tmux sessions.
+    - This will setup the complete OVS offload recipe.
+    - Configure TMUX session - test1_infrap4d, login to ACC and launch infrap4d,
+    - Configure TMUX session - test2_p4rt configure the p4rt-ctl rules, configure OVS bridges
+    - Configure TMUX session - test3_host configure the VMs on Host IDPF interface and link partner.
+    - Run a ping test to check the forwarding.
+    - After running the setup option we can login to each of the tmux sessions.
 
-```bash
-# tmux ls
-test1_infrap4d: 1 windows (created Thu Aug 29 12:35:25 2024)
-test2_p4rt: 1 windows (created Thu Aug 29 12:33:26 2024)
-test3_host: 1 windows (created Thu Aug 29 12:32:55 2024)
-```
-- Attach to a tmux session
+    ```bash
+    > tmux ls
+    test1_infrap4d: 1 windows (created Thu Aug 29 12:35:25 2024)
+    test2_p4rt: 1 windows (created Thu Aug 29 12:33:26 2024)
+    test3_host: 1 windows (created Thu Aug 29 12:32:55 2024)
+    ```
 
-```bash
-tmux a -t test2_p4rt
-```
-- Detach from inside a tmux session.
+    - Attach to a tmux session
 
-```bash
-ctrl+b d
-```
+    ```bash
+    tmux a -t test2_p4rt
+    ```
+    - Detach from inside a tmux session.
 
-4. teardown:
+    ```bash
+    ctrl+b d
+    ```
 
-```bash
-> python ovs_offload_lnw.py teardown
-```
+5. teardown:
 
-- This will teardown the complete OVS offload recipe.
-- Pre-Requisite: run copy_script option once for scripts to be available in ACC
-- Configure TMUX session - test3_host delete the VMs on Host and remove the link partner configuration.
-- Configure TMUX session - test2_p4rt delete the p4rt-ctl rules and delete the OVS bridges
-- Configure TMUX session - test1_infrap4d, login to ACC and stop infrap4d,
+    ```bash
+    > python ovs_offload_lnw.py teardown
+    ```
 
+    - This will teardown the complete OVS offload recipe.
+    - Pre-Requisite: run copy_script option once for scripts to be available in ACC
+    - Configure TMUX session - test3_host delete the VMs on Host and remove the link partner configuration.
+    - Configure TMUX session - test2_p4rt delete the p4rt-ctl rules and delete the OVS bridges
+    - Configure TMUX session - test1_infrap4d, login to ACC and stop infrap4d,
 
 ### ovs_offload_lnw_v3.py : (P4:fxp-net_linux-networking_v3.p4, IPU SDK Release 1.6.0, 1.6.1)
 
 1. This is a python script : **ovs_offload/ovs_offload_lnw_v3.py** that can be used with **P4: fxp-net_linux-networking_v3.p4** for release 1.6.0,1.6.1
 
-```bash
-> python ovs_offload_lnw_v3.py
-usage: ovs_offload_lnw_v3.py [-h] {create_script,copy_script,setup,teardown} ...
+    ```bash
+    > python ovs_offload_lnw_v3.py
+    usage: ovs_offload_lnw_v3.py [-h] {create_script,copy_script,setup,teardown} ...
 
-Run Linux networking V3 with OVS Offload
+    Run Linux networking V3 with OVS Offload
 
-positional arguments:
-  {create_script,copy_script,setup,teardown}
-                        options
-    create_script       Generate configuration scripts in localhost
-    copy_script         Copy configuration scripts to IMC and ACC
-    setup               Setup the complete OVS offload Recipe, pre-requisite: run copy_script option once for
-                        scripts to be available in ACC
-    teardown            Teardown the complete OVS offload Recipe, pre-requisite: run copy_script option once
-                        for scripts to be available in ACC
+    positional arguments:
+      {create_script,copy_script,setup,teardown}
+                            options
+        create_script       Generate configuration scripts in localhost
+        copy_script         Copy configuration scripts to IMC and ACC
+        setup               Setup the complete OVS offload Recipe, pre-requisite: run copy_script option once for
+                            scripts to be available in ACC
+        teardown            Teardown the complete OVS offload Recipe, pre-requisite: run copy_script option once
+                            for scripts to be available in ACC
 
-optional arguments:
-  -h, --help            show this help message and exit
-```
+    optional arguments:
+      -h, --help            show this help message and exit
+    ```
 
 ### ovs_offload_lnw_v2.py: (P4:fxp-net_linux-networking_v2.p4, IPU SDK Release 1.4.0)
 
 1. This is a python script : **ovs_offload/scripts/ovs_offload_lnw_v2.py** that can be used with **P4: fxp-net_linux-networking_v2.p4** for release 1.4.0
 
-```bash
-> python ovs_offload_lnw_v2.py
-usage: ovs_offload_lnw_v2.py [-h] {create_script,copy_script,setup,teardown} ...
+    ```bash
+    > python ovs_offload_lnw_v2.py
+    usage: ovs_offload_lnw_v2.py [-h] {create_script,copy_script,setup,teardown} ...
 
-Run Linux networking V2 with OVS Offload
+    Run Linux networking V2 with OVS Offload
 
-positional arguments:
-  {create_script,copy_script,setup,teardown}
-                        options
-    create_script       Generate configuration scripts in localhost
-    copy_script         Copy configuration scripts to IMC and ACC
-    setup               Setup the complete OVS offload Recipe, pre-requisite: run copy_script option once for
-                        scripts to be available in ACC
-    teardown            Teardown the complete OVS offload Recipe, pre-requisite: run copy_script option once
-                        for scripts to be available in ACC
+    positional arguments:
+      {create_script,copy_script,setup,teardown}
+                            options
+        create_script       Generate configuration scripts in localhost
+        copy_script         Copy configuration scripts to IMC and ACC
+        setup               Setup the complete OVS offload Recipe, pre-requisite: run copy_script option once for
+                            scripts to be available in ACC
+        teardown            Teardown the complete OVS offload Recipe, pre-requisite: run copy_script option once
+                            for scripts to be available in ACC
 
-optional arguments:
-  -h, --help            show this help message and exit
-```
+    optional arguments:
+      -h, --help            show this help message and exit
+    ```
 
 ## Use the Scripts on ACC to Setup OVS Offload
 
@@ -531,7 +532,6 @@ rtt min/avg/max/mdev = 0.040/0.048/0.058/0.007 ms
 
 ```
 
-
 ### OVS Offload VXLAN on 2 IPU Peers Connected back to back
 
 - Ideally OVS Offload with VXLAN can be run with 2 IPU Peer Setups connected back to back.
@@ -650,6 +650,7 @@ ovs-vsctl show
 ```bash
 [root@ipu-acc ~]# ctrl + c
 ```
+
 or
 
 ```bash
