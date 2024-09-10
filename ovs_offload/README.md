@@ -236,8 +236,8 @@ source venv/bin/activate
 
     ```bash
     tmux a -t test2_p4rt
-
     ```
+
     - Detach from inside a tmux session.
 
     ```bash
