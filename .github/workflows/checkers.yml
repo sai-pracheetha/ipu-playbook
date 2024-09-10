@@ -1,0 +1,87 @@
+name: "Check modified files"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  # If workflow is currently running, stop it and start a new one.
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  #---------------------------------------------------------------------
+  # 1-markdownlint
+  #---------------------------------------------------------------------
+  markdownlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get list of changed files
+        id: changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            **.md
+
+      - name: Lint markdown files
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: nosborn/github-action-markdown-cli@v3.3.0
+        with:
+          files: ${{ steps.changed.outputs.all_changed_files }}
+          config_file: .markdownlint.json
+
+  #---------------------------------------------------------------------
+  # 2-bandit_check
+  #---------------------------------------------------------------------
+  bandit_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Check Python files
+        uses: tj-actions/bandit@v5.5
+        with:
+          targets: |
+            **/**.py
+          options: "-v"
+
+  #---------------------------------------------------------------------
+  # 3-shellcheck
+  #---------------------------------------------------------------------
+  shellcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get list of changed files
+        id: changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            **.sh
+
+      - name: Check for bash errors
+        if: steps.changed.outputs.any_changed == 'true'
+        run: |
+          shellcheck ${{ steps.changed.outputs.all_changed_files }}
