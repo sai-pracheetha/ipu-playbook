@@ -23,7 +23,7 @@ acc:
 
 test_params:
     #path fields specify the location where the configuration scripts will be copied to on the Host,IMC and ACC
-    host_path: 'lnv_ovs_scripts'
+    host_path: 'ovs_offload_lnw_scripts'
     imc_path: '/mnt/imc/p4_test'
     acc_path:  '/opt/p4/p4sde/p4_test'
     # Update the correct IDPF Interface on the Host

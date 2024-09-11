@@ -25,7 +25,6 @@ def build_p4rt_config(vf_list=[], acc_pr_list=[],vm_ip_list=[], host_idpf_intf='
 #!/bin/sh
 #Load the driver
 echo "Load the IDPF Driver on the Host"
-#rmmod idpf
 modprobe idpf
 sleep 4
 
@@ -94,12 +93,10 @@ ovs-vsctl add-port br-tun-{vf_list[i]} {acc_pr_list[i]}
         else:
             vf = get_interface_info(server_name='host', interface_name=vf_list[i])
             acc_pr = get_interface_info(server_name='acc', interface_name=acc_pr_list[i])
-            #print(vf)
-            #print(acc_pr)
             vf_to_acc += f"""echo ""
 echo "Host IDPF Interface {vf_list[i]} MAC ({vf['mac']})  VSI ({vf['vsi_id']}:{vf['vsi_num']})  PORT ({vf['port']}) maps to"
 echo "ACC  IDPF Interface {acc_pr_list[i]} MAC ({acc_pr['mac']})  VSI ({acc_pr['vsi_id']}:{acc_pr['vsi_num']})  PORT ({acc_pr['port']})"
-p4rt-ctl add-entry br0 linux_networking_control.tx_source_port_v4 "vmeta.common.vsi={vf['vsi_num']}/2047,priority=1,action=linux_networking_control.set_source_port({vf['port']})"
+p4rt-ctl add-entry br0 linux_networking_control.tx_source_port "vmeta.common.vsi={vf['vsi_num']}/2047,priority=1,action=linux_networking_control.set_source_port({vf['port']})"
 p4rt-ctl add-entry br0 linux_networking_control.source_port_to_pr_map "user_meta.cmeta.source_port={vf['port']},zero_padding=0,action=linux_networking_control.fwd_to_vsi({acc_pr['port']})"
 p4rt-ctl add-entry br0 linux_networking_control.tx_acc_vsi "vmeta.common.vsi={acc_pr['vsi_num']},zero_padding=0,action=linux_networking_control.l2_fwd_and_bypass_bridge({vf['port']})"
 p4rt-ctl add-entry br0 linux_networking_control.vsi_to_vsi_loopback "vmeta.common.vsi={acc_pr['vsi_num']},target_vsi={vf['vsi_num']},action=linux_networking_control.fwd_to_vsi({vf['port']})"
@@ -151,7 +148,7 @@ p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.la
 """
 
     acc_path = test_config['test_params']['acc_path']
-    acc_p4_path = f'{acc_path}/fxp-net_linux-networking-v3'
+    acc_p4_path = f'{acc_path}/fxp-net_linux-networking'
     file = f'{path}/es2k_skip_p4.conf'
     p4_config = 'cat <<EOF > ./'+file+'''
 {
@@ -173,7 +170,7 @@ p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.la
             "eal-args": "--lcores=1-2 -a 00:01.6,vport=[0-1] -- -i --rxq=1 --txq=1 --hairpinq=1 --hairpin-mode=0x0",
             "p4_programs": [
                 {
-                    "program-name": "fxp-net_linux-networking-v3",
+                    "program-name": "fxp-net_linux-networking",
                     "tdi-config": "'''+acc_p4_path+'''/tdi.json",
                     "p4_pipelines": [
                         {
@@ -262,12 +259,12 @@ export DEPEND_INSTALL=\$P4CP_INSTALL
 export OUTPUT_DIR='''+acc_p4_path+'''
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
 
-tdi_pipeline_builder --p4c_conf_file=/usr/share/stratum/es2k/es2k_skip_p4.conf --tdi_pipeline_config_binary_file=\$OUTPUT_DIR/fxp-net_linux-networking-v3.pb.bin
+tdi_pipeline_builder --p4c_conf_file=/usr/share/stratum/es2k/es2k_skip_p4.conf --tdi_pipeline_config_binary_file=\$OUTPUT_DIR/fxp-net_linux-networking.pb.bin
 
 sleep 2
 echo ""
 echo "Use p4rt-ctl set-pipe to setup the runtime pipeline"
-p4rt-ctl set-pipe br0 \$OUTPUT_DIR/fxp-net_linux-networking-v3.pb.bin \$OUTPUT_DIR/p4Info.txt
+p4rt-ctl set-pipe br0 \$OUTPUT_DIR/fxp-net_linux-networking.pb.bin \$OUTPUT_DIR/p4Info.txt
 sleep 2
 echo ""
 echo "Get IDPF Interface MAC and VSI info from IMC command : cli_client -q -c"
@@ -337,9 +334,9 @@ p4rt-ctl dump-entries br0 linux_networking_control.rx_source_port
 
 #Run the p4rt-ctl dump-entries to display the table entries
 echo ""
-echo "Dump linux_networking_control.tx_source_port_v4 entries:"
-echo "p4rt-ctl dump-entries br0 linux_networking_control.tx_source_port_v4"
-p4rt-ctl dump-entries br0 linux_networking_control.tx_source_port_v4
+echo "Dump linux_networking_control.tx_source_port entries:"
+echo "p4rt-ctl dump-entries br0 linux_networking_control.tx_source_port"
+p4rt-ctl dump-entries br0 linux_networking_control.tx_source_port
 sleep 1
 
 echo ""
@@ -457,21 +454,6 @@ ovs-vsctl del-br br7
 ip link del TEP8
 ovs-vsctl del-br br8
 
-#ovs-vsctl add-br br-int-1
-#ovs-vsctl add-port br-int-1 enp0s1f0d1
-#ovs-vsctl add-port br-int-1 enp0s1f0d2
-#ovs-vsctl add-port br-int-1 enp0s1f0d3
-#ovs-vsctl add-port br-int-1 enp0s1f0d4
-#ovs-vsctl add-port br-int-1 enp0s1f0d5
-#ovs-vsctl add-port br-int-1 enp0s1f0d6
-#ovs-vsctl add-port br-int-1 enp0s1f0d7
-#ovs-vsctl add-port br-int-1 enp0s1f0d8
-#ovs-vsctl add-port br-int-1 enp0s1f0d9
-#ovs-vsctl add-port br-int-1 enp0s1f0d10
-#ovs-vsctl add-port br-int-1 enp0s1f0d11
-#ovs-vsctl add-port br-int-1 enp0s1f0d12
-#ifconfig br-int-1 up
-
 ovs-vsctl add-br br-int-1
 ovs-vsctl add-port br-int-1 enp0s1f0d4
 ovs-vsctl add-port br-int-1 enp0s1f0d6
@@ -570,9 +552,9 @@ def build_args():
     # Create the parser for the "copy_script" command
     parser_copy_script = subparsers.add_parser('copy_script', help='Copy configuration scripts to IMC and ACC')
     # Create the parser for the "setup" command
-    parser_setup = subparsers.add_parser('setup', help='Setup the complete OVS offload Recipe, pre-requisite: run copy_script option once for scripts to be available in ACC')
+    parser_setup = subparsers.add_parser('setup', help='Setup the complete OVS offload Recipe, prerequisite: run copy_script option once for scripts to be available in ACC')
     # Create the parser for the "teardown" command
-    parser_teardown = subparsers.add_parser('teardown', help='Teardown the complete OVS offload Recipe, pre-requisite: run copy_script option once for scripts to be available in ACC')
+    parser_teardown = subparsers.add_parser('teardown', help='Teardown the complete OVS offload Recipe, prerequisite: run copy_script option once for scripts to be available in ACC')
     return parser
 
 
@@ -654,6 +636,7 @@ if __name__ == "__main__":
         result = p4rt.tmux_send_keys('./6_acc_ovs_bridge.sh', delay=10, output=True)
         print(result)
 
+        # Setup a TMUX session for the IPU host, configure the VMs, idpf interfaces, Link partner interfaces and run ping checks
         print("\n----------------Setup TMUX Session and Login to the Host----------------")
         host = tmux_term(tmux_name="test3_host",tmux_override=True)
         result = host.tmux_send_keys(f'cd {host_path}', delay=2, output=True)
