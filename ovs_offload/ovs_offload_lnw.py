@@ -25,7 +25,6 @@ def build_p4rt_config(vf_list=[], acc_pr_list=[],vm_ip_list=[], host_idpf_intf='
 #!/bin/sh
 #Load the driver
 echo "Load the IDPF Driver on the Host"
-#rmmod idpf
 modprobe idpf
 sleep 4
 
@@ -455,21 +454,6 @@ ovs-vsctl del-br br7
 ip link del TEP8
 ovs-vsctl del-br br8
 
-#ovs-vsctl add-br br-int-1
-#ovs-vsctl add-port br-int-1 enp0s1f0d1
-#ovs-vsctl add-port br-int-1 enp0s1f0d2
-#ovs-vsctl add-port br-int-1 enp0s1f0d3
-#ovs-vsctl add-port br-int-1 enp0s1f0d4
-#ovs-vsctl add-port br-int-1 enp0s1f0d5
-#ovs-vsctl add-port br-int-1 enp0s1f0d6
-#ovs-vsctl add-port br-int-1 enp0s1f0d7
-#ovs-vsctl add-port br-int-1 enp0s1f0d8
-#ovs-vsctl add-port br-int-1 enp0s1f0d9
-#ovs-vsctl add-port br-int-1 enp0s1f0d10
-#ovs-vsctl add-port br-int-1 enp0s1f0d11
-#ovs-vsctl add-port br-int-1 enp0s1f0d12
-#ifconfig br-int-1 up
-
 ovs-vsctl add-br br-int-1
 ovs-vsctl add-port br-int-1 enp0s1f0d4
 ovs-vsctl add-port br-int-1 enp0s1f0d6
@@ -568,9 +552,9 @@ def build_args():
     # Create the parser for the "copy_script" command
     parser_copy_script = subparsers.add_parser('copy_script', help='Copy configuration scripts to IMC and ACC')
     # Create the parser for the "setup" command
-    parser_setup = subparsers.add_parser('setup', help='Setup the complete OVS offload Recipe, pre-requisite: run copy_script option once for scripts to be available in ACC')
+    parser_setup = subparsers.add_parser('setup', help='Setup the complete OVS offload Recipe, prerequisite: run copy_script option once for scripts to be available in ACC')
     # Create the parser for the "teardown" command
-    parser_teardown = subparsers.add_parser('teardown', help='Teardown the complete OVS offload Recipe, pre-requisite: run copy_script option once for scripts to be available in ACC')
+    parser_teardown = subparsers.add_parser('teardown', help='Teardown the complete OVS offload Recipe, prerequisite: run copy_script option once for scripts to be available in ACC')
     return parser
 
 
@@ -652,6 +636,7 @@ if __name__ == "__main__":
         result = p4rt.tmux_send_keys('./6_acc_ovs_bridge.sh', delay=10, output=True)
         print(result)
 
+        # Setup a TMUX session for the IPU host, configure the VMs, idpf interfaces, Link partner interfaces and run ping checks
         print("\n----------------Setup TMUX Session and Login to the Host----------------")
         host = tmux_term(tmux_name="test3_host",tmux_override=True)
         result = host.tmux_send_keys(f'cd {host_path}', delay=2, output=True)
