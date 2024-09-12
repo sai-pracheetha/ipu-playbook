@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2022-2024 Intel Corporation
-# SPDX-License-Identifier: Apache 2.0
+# SPDX-License-Identifier: Apache-2.0
 #
 # Python tool to setup Linux Networking with OVS Offload on Intel® Infrastructure Processing Unit (Intel® IPU)
 
