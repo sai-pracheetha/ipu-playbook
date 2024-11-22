@@ -1,9 +1,9 @@
 host:
   ssh:
-    ip: 10.232.27.15
-    username: admin12
+    ip: 127.0.0.1
+    username: root
     # Update the login password for the IPU Host
-    password: "bfn123"
+    password: ""
 
 imc:
   ssh:

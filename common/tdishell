@@ -1,0 +1,40 @@
+import socket
+import re
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--tdi_file',"-t",help="tdi_python commands")
+args = parser.parse_args()
+
+f=open(args.tdi_file,"r")
+lines=f.readlines()
+f.close()
+
+msg =[]
+msg.append("tdi_python\n")
+msg.extend(lines)
+msg.append("exit\n")
+
+s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+s.connect(('127.0.0.1',9999))
+
+for line in msg:
+    s.send(bytes(line,"utf-8"))
+    #time.sleep(1)
+
+msg=""
+while True:
+    ret=s.recv(1024)
+    msg += ret.decode("utf-8")
+    if msg.count("tdishell>") == 2 or msg.count("bfshell>") == 2: #there are two tdishell>
+        break
+
+#remove all the lines that has escape characters.
+#test shows that this will not loss the useful info.
+for line in msg.split("\n"):
+    if re.search(r'\x1b\[[\x30-\x3f]*[\x20-\x2f]*',line):   #ignore the lines with escape
+        continue
+    print(line)
+
+s.close()

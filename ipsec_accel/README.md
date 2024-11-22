@@ -94,7 +94,7 @@ usage: tmux [-2CDlNuvV] [-c shell-command] [-f file] [-L socket-name]
  
 
 ```bash
-> cd ipsec_accel
+> cd ipu-playbook/ipsec_accel
 ```
 
 ```bash
@@ -159,7 +159,7 @@ test_params:
 Use python venv:
 
 ```bash
-cd ipsec_accel/
+cd ipu-playbook
 python -m venv --copies venv
 ```
 
@@ -181,15 +181,16 @@ Run python script **ipsec_accel.py** as a root user.
 
 ```bash
 sudo -i
-cd ipdk/ipsec_accel
+cd ipu-playbook
 source venv/bin/activate
+cd ipsec_accel
 ```
 
 ## Test Script
 
 ### ipsec_accel.py : (P4:fxp-net_linux-networking.p4, IPU SDK Release >= 1.8.0)
 
-1. This is a python script : **ipsec_accel/ipsec_accel.py** that can be used with **P4: fxp-net_linux-networking.p4** for release 1.7.0 and later
+1. This is a python script : **ipsec_accel/ipsec_accel.py** that can be used with **P4: fxp-net_linux-networking.p4** for release 1.7.0 and later.
 
     ```bash
     > python ipsec_accel.py
@@ -213,6 +214,7 @@ source venv/bin/activate
     ```
 
 2. create_script: This will create the configuration scripts in the script directory (the path can be changed in **host_path** in **config.yaml**) at **ipsec_accel/ipsec_accel_scripts/**
+   If host 1, copy config_host1.yaml to config.yaml. If host 2,  config_host2.yaml to config.yaml. Change the configs according to your setup.
 
     ```bash
     > python ipsec_accel.py create_script
@@ -369,7 +371,7 @@ host# ./setup_host_comm_channel.sh
 
 On ACC
 
-acc# cd /opt/ipsec_accel_scripts/
+acc# cd /opt/ipsec_accel_scripts
 acc# ./setup_acc_comm_channel.sh
 ```
 
@@ -392,7 +394,7 @@ host# ./sync_host_acc_date.sh
 
 On ACC
 
-acc# cd /opt/ipsec_accel_scripts/
+acc# cd /opt/ipsec_accel_scripts
 acc# ./generate_certs.sh
 
 ```
@@ -519,7 +521,7 @@ rtt min/avg/max/mdev = 0.317/303.674/1107.126/465.909 ms, pipe 2
 ```bash
 
 
-host# cd ipsec_accel/ipsec_accel_scripts/
+host# cd ipsec_accel/ipsec_accel_scripts
 host# ./host_ipsec_config.sh
 host# source proxy.sh
 host# yes|cp -f ipsec.secrets {strongSwan_build}/ipsec_offload_plugin/output_strongswan/etc/
@@ -542,7 +544,7 @@ In the same terminal as above execute ipsec application on both hosts.
 host# cd {strongSwan_build}
 host# source env_setup_acc.sh
 
-host# cd {strongSwan_build}//ipsec_offload_plugin/output_strongswan/usr/sbin
+host# cd {strongSwan_build}/ipsec_offload_plugin/output_strongswan/usr/sbin
 host# ./ipsec start
 
 ```
@@ -550,7 +552,7 @@ host# ./ipsec start
 In the same terminal Check for IPsec status 
 
 ```bash
-host# cd {strongSwan_build}//ipsec_offload_plugin/output_strongswan/usr/sbin
+host# cd {strongSwan_build}/ipsec_offload_plugin/output_strongswan/usr/sbin
 host# ./ipsec status
 
 [root@Aurora sbin]# ./ipsec status
@@ -611,7 +613,7 @@ cisp tx bad pkts: 0
 ```bash
 On ACC
 
-acc# cd /opt/ipsec_accel_scripts/
+acc# cd /opt/ipsec_accel_scripts
 acc# ./ipsec_tunnel_config.sh
 ```
 
@@ -619,7 +621,7 @@ acc# ./ipsec_tunnel_config.sh
 ```bash
 On Host
 
-host# cd ipsec_accel/ipsec_accel_scripts/
+host# cd ipsec_accel/ipsec_accel_scripts
 host# ./host_ipsec_config.sh
 host# source proxy.sh
 host# yes|cp -f ipsec.secrets {strongSwan_build}/ipsec_offload_plugin/output_strongswan/etc/
@@ -642,7 +644,7 @@ In the same terminal as above execute ipsec application on both hosts.
 host# cd {strongSwan_build}
 host# source env_setup_acc.sh
 
-host# cd {strongSwan_build}//ipsec_offload_plugin/output_strongswan/usr/sbin
+host# cd {strongSwan_build}/ipsec_offload_plugin/output_strongswan/usr/sbin
 host# ./ipsec start
 
 ```
@@ -650,7 +652,7 @@ host# ./ipsec start
 In the same terminal check for IPsec status
 
 ```bash
-host# cd {strongSwan_build}//ipsec_offload_plugin/output_strongswan/usr/sbin
+host# cd {strongSwan_build}/ipsec_offload_plugin/output_strongswan/usr/sbin
 host# ./ipsec status
 
 [root@Aurora sbin]# ./ipsec status
