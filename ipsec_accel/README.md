@@ -11,7 +11,7 @@
 
 ## Test Environment Setup
 
-Before running the script, make sure `/etc/ssh/ssd_config` contains the line.
+Before running the script, make sure `/etc/ssh/sshd_config` contains the line for root user.
 
 ```bash
 PermitRootLogin yes

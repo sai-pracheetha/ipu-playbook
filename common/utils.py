@@ -3,7 +3,7 @@
 # Copyright 2022-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 #
-# Common python APIs and utilities for Intel® Infrastructure Processing Unit (Intel® IPU)
+# Common Python APIs and utilities for Intel® Infrastructure Processing Unit (Intel® IPU)
 
 import subprocess, os, time, re
 import yaml

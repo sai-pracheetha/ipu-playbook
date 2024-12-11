@@ -49,6 +49,6 @@ test_params:
     local_br_tun_ip: ['1.1.1.1']
     remote_br_tun_ip: ['1.1.1.2']
     #Directory where strongswan is built on the host
-    strongSwan_build: '/home/admin12/ipsec/ipsec_combined_sep16/ipsec-recipe/'
+    strongSwan_build: '/root/ipsec-recipe/'
     #Host 1 or Host 2
     ipsec_host: '1'

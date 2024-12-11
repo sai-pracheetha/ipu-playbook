@@ -49,18 +49,15 @@ modprobe idpf
 sleep 4
 
 echo ""
-echo "Check the Interfaces are up"
+echo "Checking if the interfaces are up"
 ip -br a
 
-echo ""
-echo "Check the Interfaces are up"
-ip -br a
 #Setup number of sriov devices on the IDPF interface
 echo "Create SRIOV VFs on IDPF interface '''+host_idpf_intf+'''"
 echo 8 > /sys/class/net/'''+host_idpf_intf+'''/device/sriov_numvfs
 
 echo ""
-echo "Wait for the interfaces to come up"
+echo "Waiting for the interfaces to come up"
 sleep 5
 ip -br a
 
@@ -69,7 +66,6 @@ EOF
 
     host_command_list.append(host_idpf)
     host_command_list.append(f"chmod +x ./{file}")
-    #host_command_list.append(f"./{file}")
 
 
     file = f'{path}/setup_host_comm_channel.sh'
@@ -263,7 +259,7 @@ ip addr add '''+comm_ip_acc+'''/24 dev enp0s1f0d3
 ip link set up dev enp0s1f0d3
 
 #Untar P4 tarball
-#tar -xzvf /opt/p4.tar.gz -C /opt/
+tar -xzvf /opt/p4.tar.gz -C /opt/
 EOF
 '''
     command_list.append(host_acc_comm_channel)
@@ -929,7 +925,7 @@ if __name__ == "__main__":
 
 
         print("\n----------------Configure ACC for Host - ACC communication----------------")
-        result = acc_comm.tmux_send_keys('./setup_acc_comm_channel.sh', delay=15, output=True)
+        result = acc_comm.tmux_send_keys('./setup_acc_comm_channel.sh', delay=90, output=True)
         print(result)
 
 
