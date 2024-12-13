@@ -35,10 +35,9 @@ total 6.2M
 -rw-r--r--. 1 admin12 admin12 949K Sep  3 11:32 fxp-net_linux-networking.s
 -rw-r--r--. 1 admin12 admin12 1.5M Sep  3 11:32 fxp-net_linux-networking_12d1caf7e380490b96f1df444b5050af.pkgo
 -rw-r--r--. 1 admin12 admin12 1.5M Sep  3 11:32 fxp-net_linux-networking.pkg
-
 ```
 
-- Load the P4 package `fxp-net_linux-networking.pkg` on the IMC. Refer section 'Load the P4 pacakge` in `IPDK IPsec (tunnel/transport mode) with strongSwan running on the Host` in `Crytographic Features` in the Intel® Infrastructure Processing Unit Software User Guide. Additionally on Host 2 need to change MAC in node policy config file. Add the following line in load_custom_pkg.sh after the sed commands in Host 2. 
+- Load the P4 package `fxp-net_linux-networking.pkg` on the IMC. Refer section 'Load the P4 pacakge` in `IPDK IPsec (tunnel/transport mode) with strongSwan running on the Host` in `Crytographic Features` in the Intel® Infrastructure Processing Unit Software User Guide. Additionally on Host 2 need to change MAC in node policy config file. Add the following line in load_custom_pkg.sh after the sed commands in Host 2.
 
 ```bash
 On Host 2
@@ -46,7 +45,6 @@ On Host 2
 sed -i 's/00:00:00:00:03:14/00:00:00:00:22:01/g' $CP_INIT_CFG
 
 Reboot the IMC
-
 ```
 
 - Copy the P4 artifacts folder for the specific release version being tested to the IMC and then to the ACC location `/opt/fxp-net_linux-networking`.
@@ -79,6 +77,7 @@ usage: tmux [-2CDlNuvV] [-c shell-command] [-f file] [-L socket-name]
 ```
 
 ### Test Topology
+
 ![Topology](https://github.com/user-attachments/assets/2a568b9a-93f0-4b4b-b672-644f6bb52d1f)
 
 ### Test Configuration (config.yaml)
@@ -90,8 +89,7 @@ usage: tmux [-2CDlNuvV] [-c shell-command] [-f file] [-L socket-name]
 - comm_ip_host, comm_ip_acc are the IPs configured on host and ACC respectively for establishing communication channel between them.
 - local_vxlan_tunnel_mac is the MAC of V0 interface based on the config_host1.yaml.
 - remote_vxlan_ip is the IP on remote host. In this example it is 192.168.1.102.
-- remote_vxlan_mac is the MAC of V0 interface on remote host based on the config_host2.yaml 
- 
+- remote_vxlan_mac is the MAC of V0 interface on remote host based on the config_host2.yaml
 
 ```bash
 > cd ipu-playbook/ipsec_accel
@@ -210,7 +208,6 @@ cd ipsec_accel
 
     optional arguments:
       -h, --help            show this help message and exit
-
     ```
 
 2. create_script: This will create the configuration scripts in the script directory (the path can be changed in **host_path** in **config.yaml**) at **ipsec_accel/ipsec_accel_scripts/**
@@ -271,13 +268,13 @@ cd ipsec_accel
     - Run a ping test to check the forwarding.
     - After running the setup option we can login to each of the tmux sessions.
 
+    ```bash
     > tmux ls
     test_acc_comm
     test_host_comm
     test_infrap4d
     test_p4rt
     test3_host
-    
     ```
 
     Attach to a tmux session
@@ -297,6 +294,7 @@ cd ipsec_accel
     ```bash
     > python ipsec_accel.py ipsec_transport
     ```
+
     - This will setup transport mode.
     - Prerequisite: run create_script, copy_script and setup.
     - Configures TMUX session - test_host_ipsec 
@@ -305,12 +303,12 @@ cd ipsec_accel
     - Check for SADB counters in IMC : 'cli_client -qsS' and encrypted/decrypted counters increment.
     - Execute './ipsec stop' to stop the IPsec session.
 
-
 6. ipsec_tunnel
 
     ```bash
     > python ipsec_accel.py ipsec_tunnel
     ```
+
     - This will setup tunnel mode.
     - Prerequisite: run create_script, copy_script and setup.
     - Configures TMUX session - test_host_ipsec
@@ -318,7 +316,6 @@ cd ipsec_accel
     - Execute './ipsec start' on both ends to establish IPsec Tunnel mode.
     - Check for SADB counters in IMC : 'cli_client -qsS' and encrypted/decrypted counters increment.
     - Execute './ipsec stop' to stop the IPsec session.
-
 
 7. teardown:
 
@@ -330,11 +327,6 @@ cd ipsec_accel
     - Prerequisite: run copy_script option once for scripts to be available in ACC
     - Configure TMUX session - test_p4rt delete the p4rt-ctl rules and delete the OVS bridges
     - Configure TMUX session - test_infrap4d, login to ACC and stop infrap4d,
-
-
-
-
-
 
 ## Use the Scripts on the Host and ACC to Setup IPsec Acceleration
 
@@ -356,19 +348,15 @@ cd ipsec_accel
 [root@ipu-acc ~]# ls /opt/fxp-net_linux-networking
 ```
 
-
 ### 2. Setup Host to ACC Communication Channel
 
 ```bash
-
 On Host
 host# cd ipsec_accel/ipsec_accel_scripts
 host# ./setup_host_comm_channel.sh
 ```
 
-
 ```bash
-
 On ACC
 
 acc# cd /opt/ipsec_accel_scripts
@@ -378,46 +366,35 @@ acc# ./setup_acc_comm_channel.sh
 ### 3. Sync date between Host and ACC
 
 ```bash
-
 On Host
 
 host# ipsec_accel/ipsec_accel_scripts
 host# ./sync_host_acc_date.sh
-
 ```
-
 
 ### 4. Generate certificates in ACC
 
-
 ```bash
-
 On ACC
 
 acc# cd /opt/ipsec_accel_scripts
 acc# ./generate_certs.sh
-
 ```
- 
 
 ### 5. Copy certificates to Host
 
 ```bash
-
 On Host
 
 host# ipsec_accel/ipsec_accel_scripts
 host# ./copy_certs.sh
-
 ```
-
 
 ### 6. Infrap4d Configuration file
 
 Copy the infrap4d config in **/opt/ipsec_accel_scripts/es2k_skip_p4.conf** to artifact folder **/opt/fxp-net_linux-networking** in the ACC
 
 ```bash
-
 On ACC
 acc# cp /opt/ipsec_accel_scripts/es2k_skip_p4.conf /opt/fxp-net_linux-networking/
 ```
@@ -434,16 +411,13 @@ acc# ./2_acc_infrap4d.sh
 
 Wait 30 seconds for infrap4d to initialize and start listening on the server.
 
-
 ### 8. Configure P4 pipeline and add the ACC PR rules
-
 
 ```bash
 acc# cd /opt/ipsec_accel_scripts
 
 acc# ./3_acc_p4rt.sh
 ```
-
 
 ```bash
 acc# cd /opt/ipsec_accel_scripts
@@ -453,7 +427,6 @@ acc# ./4_acc_p4rt_dump.sh
 
 ### 9. Set up ACC environment for OVS
 
-
 ```bash
 acc# cd /opt/ipsec_accel_scripts
 
@@ -462,26 +435,22 @@ acc# ./5_acc_setup_ovs.sh
 
 ### 10. Set up OVS Bridge Configuration
 
-
 ```bash
 acc# cd /opt/ipsec_accel_scripts
 
 acc# ./acc_ovs_vxlan.sh
 ```
 
-### 11. Set up VF interfaces configuration on the IPU Host 
-
+### 11. Set up VF interfaces configuration on the IPU Host
 
 ```bash
 host]# cd ipsec_accel/ipsec_accel_scripts
 host]# ./7_host_vm.sh
 ```
 
-
 Run a Ping Test to Host 2
 
 ```bash
-
 host# ip -br a
 lo               UNKNOWN        127.0.0.1/8 ::1/128
 eno8303          UP             10.232.27.15/23 fe80::c6cb:e1ff:fea7:3c9c/64
@@ -512,15 +481,11 @@ PING 192.168.1.102 (192.168.1.102) 56(84) bytes of data.
 --- 192.168.1.102 ping statistics ---
 4 packets transmitted, 4 received, 0% packet loss, time 3048ms
 rtt min/avg/max/mdev = 0.317/303.674/1107.126/465.909 ms, pipe 2
-
 ```
 
-
-### 11. Set up IPsec transport mode 
+### 11. Set up IPsec transport mode
 
 ```bash
-
-
 host# cd ipsec_accel/ipsec_accel_scripts
 host# ./host_ipsec_config.sh
 host# source proxy.sh
@@ -533,23 +498,19 @@ host1# yes|cp -f ipsec.conf_transport_1 {strongSwan_build}/ipsec_offload_plugin/
 
 Host 2
 host2# yes|cp -f ipsec.conf_transport_2 {strongSwan_build}/ipsec_offload_plugin/output_strongswan/etc/ipsec.conf
-
-
 ```
 
 In the same terminal as above execute ipsec application on both hosts.
 
 ```bash
-
 host# cd {strongSwan_build}
 host# source env_setup_acc.sh
 
 host# cd {strongSwan_build}/ipsec_offload_plugin/output_strongswan/usr/sbin
 host# ./ipsec start
-
 ```
 
-In the same terminal Check for IPsec status 
+In the same terminal Check for IPsec status
 
 ```bash
 host# cd {strongSwan_build}/ipsec_offload_plugin/output_strongswan/usr/sbin
@@ -560,13 +521,11 @@ Security Associations (1 up, 0 connecting):
     sts-base[1]: ESTABLISHED 3 minutes ago, 192.168.1.101[192.168.1.101]...192.168.1.102[192.168.1.102]
     sts-base{1}:  INSTALLED, TRANSPORT, reqid 1, ESP SPIs: 4f000001_i 93000001_o
     sts-base{1}:   192.168.1.101/32[tcp] === 192.168.1.102/32[tcp]
-
 ```
 
 Send traffic and check for SADB counters in IMC
 
 ```bash
-
 Host 1
 
 host1# ssh admin12@192.168.1.102
@@ -601,14 +560,9 @@ cisp rx bad pkts: 0
 cisp tx enc packets: 0 bytes: 0
 cisp tx misc errors: 0
 cisp tx bad pkts: 0
-
-
 ```
 
-
-
 ### 12. Set up IPsec tunnel mode
-
 
 ```bash
 On ACC
@@ -616,7 +570,6 @@ On ACC
 acc# cd /opt/ipsec_accel_scripts
 acc# ./ipsec_tunnel_config.sh
 ```
-
 
 ```bash
 On Host
@@ -633,20 +586,16 @@ host1# yes|cp -f ipsec.conf_tunnel_1 {strongSwan_build}/ipsec_offload_plugin/out
 
 Host 2
 host2# yes|cp -f ipsec.conf_tunnel_2 {strongSwan_build}/ipsec_offload_plugin/output_strongswan/etc/ipsec.conf
-
-
 ```
 
 In the same terminal as above execute ipsec application on both hosts.
 
 ```bash
-
 host# cd {strongSwan_build}
 host# source env_setup_acc.sh
 
 host# cd {strongSwan_build}/ipsec_offload_plugin/output_strongswan/usr/sbin
 host# ./ipsec start
-
 ```
 
 In the same terminal check for IPsec status
@@ -661,14 +610,11 @@ Security Associations (1 up, 0 connecting):
     sts-base{1}:  INSTALLED, TUNNEL, reqid 1, ESP SPIs: 6d000001_i 5a000001_o
     sts-base{1}:   11.0.0.1/32[tcp] === 11.0.0.2/32[tcp]
 (venv) [root@Aurora sbin]#
-
-
 ```
 
 Send traffic and check for SADB counters in IMC
 
 ```bash
-
 Host
 
 (venv) [root@Aurora sbin]# ssh admin12@11.0.0.2
@@ -700,15 +646,14 @@ cisp tx misc errors: 0
 cisp tx bad pkts: 0
 
 server finished responding =======================
-
 ```
-
 
 Stop IPsec application
 
 ```bash
 host# ./ipsec stop
 ```
+
 ### Optional:  Clean up the configs
 
 Run the tool with option **teardown**
@@ -733,7 +678,6 @@ ovs-vsctl del-br br-tun-0
 
 ip link del TEP0
 ovs-vsctl del-br br0
-
 ```
 
 ACC Terminal : Delete the p4rt-ctl runtime rules
