@@ -6,9 +6,23 @@
 # Python tool to setup Linux Networking with OVS Offload on Intel® Infrastructure Processing Unit (Intel® IPU)
 
 import sys,argparse
+import os
+
+# Add the parent directory to the system path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from common.utils import *
 
-def build_p4rt_config(vf_list=[], acc_pr_list=[],vm_ip_list=[], host_idpf_intf='', path=''):
+def build_p4rt_config(test_setup = None):
+
+    if test_setup == None:
+        print("Unable to parse the config.yaml to generate test configuration")
+        sys.exit()
+
+    host_idpf_intf= test_setup.test_config['test_params']['idpf_interface']
+    vf_list = test_setup.test_config['test_params']['vf_interfaces']
+    acc_pr_list = test_setup.test_config['test_params']['acc_pr_interfaces']
+    vm_ip_list = test_setup.test_config['test_params']['ip_list']
+    path = test_setup.test_config['test_params']['host_path']
 
     print("---------- Generating Configs to run infrap4d, p4rt and OVS ----------")
 
@@ -47,7 +61,7 @@ EOF
 
     for command in host_command_list:
         try:
-            result = ssh_command('host', command)
+            result = test_setup.ssh_command('host', command)
         except Exception as e:
             print(f"Failed with exception:\n{e}")
     time.sleep(5)
@@ -57,10 +71,10 @@ EOF
     phy_to_acc = ''
     vf_to_vm = ''
     ovs_vxlan = ''
-    local_vtep = test_config['test_params']['local_vtep']
-    remote_vtep = test_config['test_params']['remote_vtep']
-    local_br_tun = test_config['test_params']['local_br_tun_ip']
-    remote_br_tun = test_config['test_params']['remote_br_tun_ip']
+    local_vtep = test_setup.test_config['test_params']['local_vtep']
+    remote_vtep = test_setup.test_config['test_params']['remote_vtep']
+    local_br_tun = test_setup.test_config['test_params']['local_br_tun_ip']
+    remote_br_tun = test_setup.test_config['test_params']['remote_br_tun_ip']
     vm_id = 0
     command_list = []
     cmd = f"mkdir -p {path}"
@@ -70,7 +84,7 @@ EOF
         if str(vf_list[i]) == '0' or str(vf_list[i]) == '1':
         #Physical port   VSI_ID  PORT             ACC port representer  VSI_ID    PORT
         #Phy port 0      (0x0)    0     <---->    enp0s1f0d10         (0x11) 17   33
-            acc_pr = get_interface_info(server_name='acc', interface_name=acc_pr_list[i])
+            acc_pr = test_setup.get_interface_info(server_name='acc', interface_name=acc_pr_list[i])
             phy_to_acc += f"""echo ""
 echo "IPU Physical Port {vf_list[i]} maps to "
 echo "ACC IDPF Interface {acc_pr_list[i]} MAC ({acc_pr['mac']})  VSI ({acc_pr['vsi_id']}:{acc_pr['vsi_num']})  PORT ({acc_pr['port']})"
@@ -91,8 +105,8 @@ ovs-vsctl add-port br-tun-{vf_list[i]} {acc_pr_list[i]}
 
 """
         else:
-            vf = get_interface_info(server_name='host', interface_name=vf_list[i])
-            acc_pr = get_interface_info(server_name='acc', interface_name=acc_pr_list[i])
+            vf = test_setup.get_interface_info(server_name='host', interface_name=vf_list[i])
+            acc_pr = test_setup.get_interface_info(server_name='acc', interface_name=acc_pr_list[i])
             vf_to_acc += f"""echo ""
 echo "Host IDPF Interface {vf_list[i]} MAC ({vf['mac']})  VSI ({vf['vsi_id']}:{vf['vsi_num']})  PORT ({vf['port']}) maps to"
 echo "ACC  IDPF Interface {acc_pr_list[i]} MAC ({acc_pr['mac']})  VSI ({acc_pr['vsi_id']}:{acc_pr['vsi_num']})  PORT ({acc_pr['port']})"
@@ -147,7 +161,7 @@ p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.l
 p4rt-ctl add-entry br0  linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0,hash=7,action=linux_networking_control.bypass"
 """
 
-    acc_path = test_config['test_params']['acc_path']
+    acc_path = test_setup.test_config['test_params']['acc_path']
     acc_p4_path = f'{acc_path}/fxp-net_linux-networking-v2'
     file = f'{path}/es2k_skip_p4.conf'
     p4_config = 'cat <<EOF > ./'+file+'''
@@ -536,7 +550,7 @@ EOF
 
     for command in command_list:
         try:
-            result = ssh_command('host', command)
+            result = test_setup.ssh_command('host', command)
         except Exception as e:
             print(f"Failed with exception:\n{e}")
 
@@ -559,19 +573,17 @@ def build_args():
 
 
 if __name__ == "__main__":
-    host_path = test_config['test_params']['host_path']
-    imc_path = test_config['test_params']['imc_path']
-    acc_path = test_config['test_params']['acc_path']
-    idpf_interface = test_config['test_params']['idpf_interface']
-    vf_interfaces = test_config['test_params']['vf_interfaces']
-    acc_pr_interfaces = test_config['test_params']['acc_pr_interfaces']
-    ip_list=test_config['test_params']['ip_list']
-    imc_ip = test_config['imc']['ssh']['ip']
-    acc_ip = test_config['acc']['ssh']['ip']
+    test_setup = TestSetup(config_file = f'{os.path.dirname(os.path.abspath(__file__))}/config.yaml')
+    host_path = test_setup.test_config['test_params']['host_path']
+    imc_path = test_setup.test_config['test_params']['imc_path']
+    acc_path = test_setup.test_config['test_params']['acc_path']
+    ip_list = test_setup.test_config['test_params']['ip_list']
+    imc_ip = test_setup.test_config['imc']['ssh']['ip']
+    acc_ip = test_setup.test_config['acc']['ssh']['ip']
     acc_p4_path = f'{acc_path}/fxp-net_linux-networking'
-    lp_interfaces = test_config['host']['lp_interfaces']
-    lp_interface_ip = test_config['host']['lp_interface_ip']
-    host_password = test_config['host']['ssh']['password']
+    lp_interfaces = test_setup.test_config['host']['lp_interfaces']
+    lp_interface_ip = test_setup.test_config['host']['lp_interface_ip']
+    host_password = test_setup.test_config['host']['ssh']['password']
     imc_login = f'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{imc_ip}'
     acc_login = f'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{acc_ip}'
 
@@ -583,13 +595,13 @@ if __name__ == "__main__":
     if args.command == 'create_script':
 
         print("\n----------------Create OVS OFFLOAD scripts----------------")
-        build_p4rt_config(vf_list=vf_interfaces, acc_pr_list=acc_pr_interfaces, vm_ip_list=ip_list,host_idpf_intf=idpf_interface, path=host_path)
+        build_p4rt_config(test_setup = test_setup)
 
     elif args.command == 'copy_script':
         print("\n----------------Create OVS OFFLOAD scripts----------------")
-        build_p4rt_config(vf_list=vf_interfaces, acc_pr_list=acc_pr_interfaces, vm_ip_list=ip_list,host_idpf_intf=idpf_interface, path=host_path)
+        build_p4rt_config(test_setup = test_setup)
         print("\n----------------Copy OVS OFFLOAD scripts to the ACC----------------")
-        copy_scripts(host_path = host_path, imc_path = imc_path , acc_path = acc_path)
+        test_setup.copy_scripts()
 
     elif args.command == 'setup':
 
@@ -601,7 +613,7 @@ if __name__ == "__main__":
 
         # Setup a TMUX session, Login to ACC and start infrap4d
         print("\n----------------Setup TMUX Session, Login to ACC----------------")
-        infrap4d = tmux_term(tmux_name="test1_infrap4d",tmux_override=True)
+        infrap4d = tmux_term(test_setup=test_setup, tmux_name="test1_infrap4d",tmux_override=True)
         result = infrap4d.tmux_send_keys(imc_login, delay=2, output=True)
         result = infrap4d.tmux_send_keys(acc_login, delay=2, output=True)
 
@@ -617,7 +629,7 @@ if __name__ == "__main__":
 
         # Setup a TMUX session, Login to ACC, configure p4rt rules and ovs bridges
         print("\n----------------Setup TMUX Session, Login to ACC----------------")
-        p4rt = tmux_term(tmux_name="test2_p4rt",tmux_override=True)
+        p4rt = tmux_term(test_setup=test_setup, tmux_name="test2_p4rt",tmux_override=True)
         result = p4rt.tmux_send_keys(imc_login, delay=2)
         result = p4rt.tmux_send_keys(acc_login, delay=2)
         result = p4rt.tmux_send_keys(f'cd {acc_path}/{host_path}', delay=2, output=True)
@@ -638,7 +650,7 @@ if __name__ == "__main__":
 
         # Setup a TMUX session for the IPU host, configure the VMs, idpf interfaces, Link partner interfaces and run ping checks
         print("\n----------------Setup TMUX Session and Login to the Host----------------")
-        host = tmux_term(tmux_name="test3_host",tmux_override=True)
+        host = tmux_term(test_setup=test_setup, tmux_name="test3_host",tmux_override=True)
         result = host.tmux_send_keys(f'cd {host_path}', delay=2, output=True)
         result = host.tmux_send_keys('sudo -s', delay=2, output=True)
         result = host.tmux_send_keys(f'{host_password}', delay=2, output=True)
@@ -670,7 +682,7 @@ if __name__ == "__main__":
         print("\n----------------Teardown Linux Networking with OVS OFFLOAD----------------")
 
         print("\n----------------Setup TMUX Session and Login to the Host----------------")
-        host = tmux_term(tmux_name="test3_host",tmux_override=True)
+        host = tmux_term(test_setup=test_setup, tmux_name="test3_host",tmux_override=True)
         result = host.tmux_send_keys(f'cd {host_path}', delay=2, output=True)
         result = host.tmux_send_keys('sudo -s', delay=2, output=True)
         result = host.tmux_send_keys(f'{host_password}', delay=2, output=True)
@@ -695,7 +707,7 @@ ip netns del VM7
         print(result)
 
         print("\n----------------Setup TMUX Session, Login to ACC----------------")
-        p4rt = tmux_term(tmux_name="test2_p4rt",tmux_override=True)
+        p4rt = tmux_term(test_setup=test_setup, tmux_name="test2_p4rt",tmux_override=True)
         result = p4rt.tmux_send_keys(imc_login, delay=2)
         result = p4rt.tmux_send_keys(acc_login, delay=2)
         result = p4rt.tmux_send_keys(f'cd {acc_path}/{host_path}', delay=2, output=True)
@@ -742,7 +754,7 @@ ovs-vsctl show
         print(result)
 
         print("\n----------------Stop Infrap4d on the ACC----------------")
-        infrap4d = tmux_term(tmux_name="test1_infrap4d",tmux_override=True)
+        infrap4d = tmux_term(test_setup=test_setup, tmux_name="test1_infrap4d",tmux_override=True)
         result = infrap4d.tmux_send_keys(imc_login, delay=2, output=True)
         result = infrap4d.tmux_send_keys(acc_login, delay=2, output=True)
         result = infrap4d.tmux_send_keys('ps -aux | grep infrap4d', delay=2, output=True)
