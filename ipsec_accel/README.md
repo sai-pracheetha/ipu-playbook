@@ -297,7 +297,7 @@ cd ipsec_accel
 
     - This will setup transport mode.
     - Prerequisite: run create_script, copy_script and setup.
-    - Configures TMUX session - test_host_ipsec 
+    - Configures TMUX session - test_host_ipsec
     - Attach to this TMUX session : tmux a -t test_host_ipsec
     - Execute './ipsec start' on both ends to establish IPsec Transport mode.
     - Check for SADB counters in IMC : 'cli_client -qsS' and encrypted/decrypted counters increment.
