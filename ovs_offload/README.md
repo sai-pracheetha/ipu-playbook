@@ -12,13 +12,13 @@
 
 ### Supports two Setup Topologies
 
-#### All in one configuration.
+#### All in one configuration
 
 - IPU adapter and a Link Partner NIC is connected to a single Host server. Use Default ipu-playbook/ovs_offload/config.yaml
 - Host1 IPU Port0 <-----> Host1 Link Partner Port0
 - Host1 IPU Port1 <-----> Host1 Link Partner Port1
 
-#### Two IPU Host servers connected back to back.
+#### Two IPU Host servers connected back to back
 
 - 2 IPU Adapters are connected to two Host servers via PCIe and the IPU Physical Ports on the two servers are connected back to back.
 - Host1 IPU Port0 <-----> Host2 IPU Port0
@@ -403,16 +403,16 @@ source venv/bin/activate
     - Configure TMUX session - test2_p4rt delete the p4rt-ctl rules and delete the OVS bridges
     - Configure TMUX session - test1_infrap4d, login to ACC and stop infrap4d,
 
-## Run the script on the IPU Host.
+## Run the script on the IPU Host
 
-    - Run below commands in the IPU Host server to configure OVS Offload on the IPU ACC and configure the Host IDPF Interfaces.
+- Run below commands in the IPU Host server to configure OVS Offload on the IPU ACC and configure the Host IDPF Interfaces.
 
-    ```bash
-    python ovs_offload_lnw.py copy_script
-    python ovs_offload_lnw.py setup
-    ```
+```bash
+python ovs_offload_lnw.py copy_script
+python ovs_offload_lnw.py setup
+```
 
-    - Details of the script execution steps is provided below.
+- Details of the script execution steps is provided below.
 
 ### 1. IPU P4 Artifacts on ACC
 
