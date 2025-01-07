@@ -10,14 +10,16 @@
 - Transport (Default mode): The tool generates the OVS bridge configuration for transport Mode with IPv4 encapsulation, use helper script 6_acc_ovs_bridge.sh.
 - Tunnel (Optional mode): The tool also generates the OVS bridge configuration for Tunnel Mode with VXLAN encapsulation, use helper script acc_ovs_vxlan.sh. Refer VXLAN section.
 
-### Supports two Setup Topologies.
+### Supports two Setup Topologies
 
-1. All in one configuration.
+#### All in one configuration.
+
 - IPU adapter and a Link Partner NIC is connected to a single Host server. Use Default ipu-playbook/ovs_offload/config.yaml
 - Host1 IPU Port0 <-----> Host1 Link Partner Port0
 - Host1 IPU Port1 <-----> Host1 Link Partner Port1
 
-2. Two IPU Host servers connected back to back.
+#### Two IPU Host servers connected back to back.
+
 - 2 IPU Adapters are connected to two Host servers via PCIe and the IPU Physical Ports on the two servers are connected back to back.
 - Host1 IPU Port0 <-----> Host2 IPU Port0
 - Host1 IPU Port1 <-----> Host2 IPU Port1
@@ -83,6 +85,7 @@ usage: tmux [-2CDlNuvV] [-c shell-command] [-f file] [-L socket-name]
 ```
 
 ## Test Configuration
+
 - The tool uses the config.yaml file to program the rules for OVS Offload on the IPU Adapter and configure the IDPF interfaces on the Host server.
 - The tool can be used in All in one configuration or 2 IPU Servers connected Back to back.
 - More information on the configuration below
@@ -216,6 +219,7 @@ test_params:
 ```
 
 ### IPU Host 2
+
 ```bash
 > cd ipu-playbook/ovs_offload
 > cp config_host2.yaml config.yaml
@@ -399,16 +403,16 @@ source venv/bin/activate
     - Configure TMUX session - test2_p4rt delete the p4rt-ctl rules and delete the OVS bridges
     - Configure TMUX session - test1_infrap4d, login to ACC and stop infrap4d,
 
-
 ## Run the script on the IPU Host.
 
-- Run below commands in the IPU Host server to configure OVS Offload on the IPU ACC and configure the Host IDPF Interfaces.
+    - Run below commands in the IPU Host server to configure OVS Offload on the IPU ACC and configure the Host IDPF Interfaces.
 
-```bash
-python ovs_offload_lnw.py copy_script
-python ovs_offload_lnw.py setup
-```
-- Details of the script execution steps is provided below.
+    ```bash
+    python ovs_offload_lnw.py copy_script
+    python ovs_offload_lnw.py setup
+    ```
+
+    - Details of the script execution steps is provided below.
 
 ### 1. IPU P4 Artifacts on ACC
 
@@ -763,7 +767,8 @@ root       24663  0.0  0.0   3620  1732 pts/1    S+   04:24   0:00 grep --color=
 ```
 
 ### Appendix
-For IPU SDK version < 1.6.1 use below scripts
+
+- For IPU SDK version < 1.6.1 use below scripts
 
 ### ovs_offload_lnw_v3.py : (P4:fxp-net_linux-networking_v3.p4, IPU SDK Release 1.6.0, 1.6.1)
 
