@@ -22,23 +22,23 @@ acc:
     password: ""
 
 test_params:
-    #path fields specify the location where the configuration scripts will be copied to on the Host,IMC and ACC
+    # path fields specify the location where the configuration scripts will be copied to on the host, IMC, and ACC
     host_path: 'ovs_offload_lnw_scripts'
     imc_path: '/mnt/imc/p4_test'
     acc_path:  '/opt/p4/p4sde/p4_test'
-    # Update the correct IDPF Interface on the Host
+    # Update the correct IDPF Interface on the host
     idpf_interface: 'ens2f0'
-    # Update the list of Host IDPF Interfaces on the Host to Map to ACC Port representors
-    # Interfaces ['0','1'] below represents the IPU Physical Port 0 and Port 1 and the remaining as the Host IDPF Vfs
+    # Update the list of host IDPF Interfaces on the host to map to ACC port representors (PRs)
+    # Interfaces ['0','1'] below represents the IPU physical Port 0 and Port 1 and the remaining as the host IDPF VFs
     vf_interfaces: ['0','1','ens2f0v0','ens2f0v1','ens2f0v2','ens2f0v3','ens2f0v4','ens2f0v5','ens2f0v6','ens2f0v7']
-    # These are the ACC Port representors that will be used to map to the interfaces in the above list vf_interfaces
+    # These are the ACC port representors that will be used to map to the interfaces in the above list vf_interfaces
     acc_pr_interfaces:  ['enp0s1f0d4','enp0s1f0d5','enp0s1f0d6','enp0s1f0d7','enp0s1f0d8','enp0s1f0d9','enp0s1f0d10','enp0s1f0d11','enp0s1f0d12','enp0s1f0d13']
-    # The ip_list contains the IP addresses that will be used for the Host IDPF VF interfaces that are mapped to the VM config (using: ip netns).
+    # The ip_list contains the IP addresses that will be used for the host IDPF VF interfaces that are mapped to the VM config (using: ip netns).
     ip_list: ['10.0.0.20','10.0.0.21','10.0.0.22','10.0.0.23','20.0.0.20','20.0.0.21','20.0.0.22','20.0.0.23']
     # User Input for OVS VXLAN Config.
-    # Local and remote vtep(virtual tunnel end-point) IPs are used in OVS vxlan config with ACC PRs mapped to host IDPF VF
+    # Local and remote vtep(virtual tunnel end-point) IPs are used in OVS VXLAN config with ACC PRs mapped to host IDPF VF
     local_vtep: ['10.1.1.2','11.1.1.2','12.1.1.2','13.1.1.2','14.1.1.2','15.1.1.2','16.1.1.2','17.1.1.2','18.1.1.2','19.1.1.2','20.1.1.2']
     remote_vtep: ['10.1.1.1','11.1.1.1','12.1.1.1','13.1.1.1','14.1.1.1','15.1.1.1','16.1.1.1','17.1.1.1','18.1.1.1','19.1.1.1','20.1.1.1']
-    # Tunnel Termination Bridge IP for local and remote peer.
+    # Tunnel termination bridge IP for local and remote peer
     remote_br_tun_ip: ['1.1.1.1','2.1.1.1']
     local_br_tun_ip: ['1.1.1.2','2.1.1.2']
