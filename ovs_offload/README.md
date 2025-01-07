@@ -34,7 +34,7 @@ Before running the script, make sure `/etc/ssh/sshd_config` contains the line fo
 PermitRootLogin yes
 ```
 
-### Prerequisites
+## Prerequisites
 
 - The host package `intel-ipu-host-components-<version>.<build number>.tar.gz` contains the example IPU P4 source code, the compiled P4 package, and artifacts that can be used to set up the workload on the IMC and ACC.
 - The compiled artifacts for P4 `fxp-net_linux-networking` can be found in the location below after you extract the tar package.
@@ -55,12 +55,92 @@ total 6.2M
 
 ```
 
+### IMC Setup to load the P4 package
+
 - Load the P4 package `fxp-net_linux-networking.pkg` on the IMC. Refer Section `IPU P4 Quickstart Guide` in the Intel® Infrastructure Processing Unit Software User Guide
-- Copy the P4 artifacts folder for the specific release version being tested to the IMC and then to the ACC location `/opt/p4/p4sde/p4_test/fxp-net_linux-networking`.
-- Make sure the same version of IDPF driver is loaded on the Host, IMC and ACC, run commands below as a root user
+- Copy the P4 package `fxp-net_linux-networking.pkg` to the IMC /work/scripts/ directory and update script /work/scripts/load_custom_pkg.sh as shown below.
+
+#### Host 1 IPU IMC
+
+```bash
+[root@ipu-imc ~]# cat /work/scripts/load_custom_pkg.sh
+#!/bin/sh
+CP_INIT_CFG=/etc/dpcp/cfg/cp_init.cfg
+echo "Checking for custom package..."
+if [ -e /work/scripts/fxp-net_linux-networking.pkg ]; then
+    echo "Custom package fxp-net_linux-networking.pkg found. Overriding default package"
+    cp  /work/scripts/fxp-net_linux-networking.pkg /etc/dpcp/package/
+    rm -rf /etc/dpcp/package/default_pkg.pkg
+    ln -s /etc/dpcp/package/fxp-net_linux-networking.pkg /etc/dpcp/package/default_pkg.pkg
+    sed -i 's/sem_num_pages = .*;/sem_num_pages = 28;/g' $CP_INIT_CFG
+    sed -i 's/lem_num_pages = .*;/lem_num_pages = 32;/g' $CP_INIT_CFG
+    sed -i 's/mod_num_pages = .*;/mod_num_pages = 2;/g' $CP_INIT_CFG
+    sed -i 's/acc_apf = 4;/acc_apf = 16;/g' $CP_INIT_CFG
+else
+    echo "No custom package found. Continuing with default package"
+fi
+```
+
+#### Host 2 IPU IMC
+
+- For two IPU Host servers connected back to back we modify the default MAC for the IPU interfaces.
+- The MAC suffix is updated for the pf_mac_address and vf_mac_address in the default Node policy `/etc/dpcp/cfg/cp_init.cfg` in the Host 2 IPU IMC.
+- This ensures that there are no MAC address conflicts and the Host 2 IPU adapter interfaces use a different MAC.
+
+```bash
+[root@ipu-imc ~]# cat /work/scripts/load_custom_pkg.sh
+#!/bin/sh
+CP_INIT_CFG=/etc/dpcp/cfg/cp_init.cfg
+echo "Checking for custom package..."
+sed -i 's/pf_mac_address = "00:00:00:00:03:14";/pf_mac_address = "00:00:00:00:04:14";/g' $CP_INIT_CFG
+sed -i 's/vf_mac_address = "";/vf_mac_address = "00:00:00:00:06:14";/g' $CP_INIT_CFG
+if [ -e /work/scripts/fxp-net_linux-networking.pkg ]; then
+    echo "Custom package fxp-net_linux-networking.pkg found. Overriding default package"
+    cp  /work/scripts/fxp-net_linux-networking.pkg /etc/dpcp/package/
+    rm -rf /etc/dpcp/package/default_pkg.pkg
+    ln -s /etc/dpcp/package/fxp-net_linux-networking.pkg /etc/dpcp/package/default_pkg.pkg
+    sed -i 's/sem_num_pages = .*;/sem_num_pages = 28;/g' $CP_INIT_CFG
+    sed -i 's/lem_num_pages = .*;/lem_num_pages = 32;/g' $CP_INIT_CFG
+    sed -i 's/mod_num_pages = .*;/mod_num_pages = 2;/g' $CP_INIT_CFG
+    sed -i 's/acc_apf = 4;/acc_apf = 16;/g' $CP_INIT_CFG
+else
+    echo "No custom package found. Continuing with default package"
+fi
+```
+
+- After IMC Reboot the above script will update the P4 Package to `fxp-net_linux-networking.pkg` and the default Node policy `/etc/dpcp/cfg/cp_init.cfg`.
+
+```bash
+[root@ipu-imc ~]# ls -lrt /etc/dpcp/package/
+total 2852
+-rw-r--r-- 1 root root 1532240 Jan  1 00:00 fxp-net_linux-networking.pkg
+lrwxr-xr-x 1 root root      46 Jan  1 00:00 default_pkg.pkg -> /etc/dpcp/package/fxp-net_linux-networking.pkg
+drwxr-xr-x 2 root root    4096 Sep 11  2024 runtime_files
+-rw-r--r-- 1 root root 1376720 Sep 11  2024 e2100-default-1.0.30.0.pkg
+```
+
+### Copy P4 artifacts to the ACC
+
+- Copy the P4 artifacts folder `intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking` for the specific release version being tested to the IMC and then to the ACC location `/opt/p4/p4sde/p4_test/fxp-net_linux-networking`.
+
+### Host IDPF Interface Setup
+
+- Extract The host package `intel-ipu-host-components-<version>.<build number>.tar.gz`, this contains the IDPF source and Pre-built RPMs for RHEL and Rocky Linux.
+- Make sure the same version of IDPF driver is loaded on the Host, IMC and ACC, run commands below as a root user to build the IDPF Driver from the source.
+
+```bash
+cd intel-ipu-host-components/IDPF
+tar -xvf idpf-<version>.tar.gz
+cd idpf-<version>
+make
+make install
+```
+
+- Load the IDPF Driver and create 8 SR-IOV VFs using the commands below
 
 ```bash
 sudo -i
+rmmod idpf
 modprobe idpf
 lsmod | grep idpf
 modinfo idpf
