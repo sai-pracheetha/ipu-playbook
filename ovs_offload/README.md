@@ -3,24 +3,24 @@
 ## Introduction
 
 - The ovs_offload_lnw.py tool can be used on an host server connected with Intel® Infrastructure Processing Unit via PCIe.
-- It is supported on IPU SDK Release version >= 1.7.0 and makes use of the P4 package fxp-net_linux-networking.pkg
-- It creates the configuration to run the Linux Networking Recipe with OVS Offloaded to the IPU ACC.
-- It can be used to start infrap4d on the ACC and program the p4rt-ctl runtime rules to configure ACC Port representors for the Host IDPF interfaces and IPU Physical Port 0 and Port 1.
+- It is supported on IPU SDK release version >= 1.7.0 and makes use of the P4 package fxp-net_linux-networking.pkg
+- It creates the configuration to run the Linux Networking recipe with OVS Offloaded to the IPU ACC.
+- It can be used to start infrap4d on the ACC and program using the p4rt runtime rules to configure ACC port representors for the host IDPF interfaces and IPU Physical Port 0 and Port 1.
 - It can set up OVS bridges on the ACC using the port representors and configure VM namespaces for the IDPF interfaces on the Host.
-- Transport (Default mode): The tool generates the OVS bridge configuration for transport Mode with IPv4 encapsulation, use helper script 6_acc_ovs_bridge.sh.
-- Tunnel (Optional mode): The tool also generates the OVS bridge configuration for Tunnel Mode with VXLAN encapsulation, use helper script acc_ovs_vxlan.sh. Refer VXLAN section.
+- Transport (Default mode): The tool generates the OVS bridge configuration for transport mode with IPv4 encapsulation, use helper script 6_acc_ovs_bridge.sh.
+- Tunnel (Optional mode): The tool also generates the OVS bridge configuration for tunnel mode with VXLAN encapsulation, use helper script acc_ovs_vxlan.sh. Refer to the VXLAN section below.
 
-### Supports two Setup Topologies
+### Supports Two Setup Topologies
 
-#### All in one configuration
+#### All-in-One Configuration
 
-- IPU adapter and a Link Partner NIC is connected to a single Host server. Use Default ipu-playbook/ovs_offload/config.yaml
+- IPU adapter and a Link Partner NIC is connected to a single host server. Use Default ipu-playbook/ovs_offload/config.yaml
 - Host1 IPU Port0 <-----> Host1 Link Partner Port0
 - Host1 IPU Port1 <-----> Host1 Link Partner Port1
 
-#### Two IPU Host servers connected back to back
+#### Two IPU Host Servers Connected Back to Back
 
-- 2 IPU Adapters are connected to two Host servers via PCIe and the IPU Physical Ports on the two servers are connected back to back.
+- 2 IPU adapters are connected to two host servers via PCIe and the IPU Physical Ports on the two servers are connected back to back.
 - Host1 IPU Port0 <-----> Host2 IPU Port0
 - Host1 IPU Port1 <-----> Host2 IPU Port1
 - For IPU Host 1 server copy config_host1.yaml to config.yaml.
@@ -55,7 +55,7 @@ total 6.2M
 
 ```
 
-### IMC Setup to load the P4 package
+### IMC Setup to Load the P4 Package
 
 - Load the P4 package `fxp-net_linux-networking.pkg` on the IMC. Refer Section `IPU P4 Quickstart Guide` in the Intel® Infrastructure Processing Unit Software User Guide
 - Copy the P4 package `fxp-net_linux-networking.pkg` to the IMC /work/scripts/ directory and update script /work/scripts/load_custom_pkg.sh as shown below.
@@ -83,9 +83,9 @@ fi
 
 #### Host 2 IPU IMC
 
-- For two IPU Host servers connected back to back we modify the default MAC for the IPU interfaces.
-- The MAC suffix is updated for the pf_mac_address and vf_mac_address in the default Node policy `/etc/dpcp/cfg/cp_init.cfg` in the Host 2 IPU IMC.
-- This ensures that there are no MAC address conflicts and the Host 2 IPU adapter interfaces use a different MAC.
+- For two IPU host servers connected back-to-back we modify the default MAC addresses of the IPU interfaces.
+- The MAC suffix is updated for the pf_mac_address and vf_mac_address in the default node policy `/etc/dpcp/cfg/cp_init.cfg` in the Host 2 IPU IMC.
+- This ensures that there are no MAC address conflicts and the Host 2 IPU adapter interfaces use a different MAC address.
 
 ```bash
 [root@ipu-imc ~]# cat /work/scripts/load_custom_pkg.sh
@@ -108,7 +108,7 @@ else
 fi
 ```
 
-- After IMC Reboot the above script will update the P4 Package to `fxp-net_linux-networking.pkg` and the default Node policy `/etc/dpcp/cfg/cp_init.cfg`.
+- After IMC reboots, the above script will update the P4 package to `fxp-net_linux-networking.pkg` and the default node policy `/etc/dpcp/cfg/cp_init.cfg`.
 
 ```bash
 [root@ipu-imc ~]# ls -lrt /etc/dpcp/package/
@@ -119,14 +119,15 @@ drwxr-xr-x 2 root root    4096 Sep 11  2024 runtime_files
 -rw-r--r-- 1 root root 1376720 Sep 11  2024 e2100-default-1.0.30.0.pkg
 ```
 
-### Copy P4 artifacts to the ACC
+### Copy P4 Artifacts to the ACC
 
 - Copy the P4 artifacts folder `intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking` for the specific release version being tested to the IMC and then to the ACC location `/opt/p4/p4sde/p4_test/fxp-net_linux-networking`.
 
 ### Host IDPF Interface Setup
 
-- Extract The host package `intel-ipu-host-components-<version>.<build number>.tar.gz`, this contains the IDPF source and Pre-built RPMs for RHEL and Rocky Linux.
-- Make sure the same version of IDPF driver is loaded on the Host, IMC and ACC, run commands below as a root user to build the IDPF Driver from the source.
+- Extract The host package `intel-ipu-host-components-<version>.<build number>.tar.gz`, this contains the IDPF source and pre-built RPMs for RHEL and Rocky Linux.
+- If using some other flavor of Linux, run the following commands as a root user to build the IDPF driver from source
+- Make sure the same version of IDPF driver is loaded on the host, IMC and ACC
 
 ```bash
 cd intel-ipu-host-components/IDPF
@@ -147,9 +148,9 @@ modinfo idpf
 echo 8 > /sys/class/net/ens5f0/device/sriov_numvfs
 ```
 
-- Replace `ens5f0` above with the correct Host IDPF Interface to create 8 SR-IOV VFs on the Host.
+- Replace `ens5f0` above with the correct host IDPF interface to create 8 SR-IOV VFs on the host.
 - The tool uses tmux sessions when running the option setup and option teardown.
-- Install TMUX on the IPU Host.
+- Install TMUX on the host.
 
 ```bash
 Ubuntu/Debian.
@@ -166,15 +167,15 @@ usage: tmux [-2CDlNuvV] [-c shell-command] [-f file] [-L socket-name]
 
 ## Test Configuration
 
-- The tool uses the config.yaml file to program the rules for OVS Offload on the IPU Adapter and configure the IDPF interfaces on the Host server.
-- The tool can be used in All in one configuration or 2 IPU Servers connected Back to back.
+- The tool uses the config.yaml file to program the rules for OVS Offload on the IPU adapter and configure the IDPF interfaces on the host server.
+- The tool can be used in an all-in-one configuration or 2 IPU servers connected back-to-back.
 - More information on the configuration below
 
-### All in one Test Configuration (config.yaml)
+### All-in-one Test Configuration (config.yaml)
 
-- All in one configuration IPU adapter and a Link Partner NIC is connected to a single Host server. Use Default ipu-playbook/ovs_offload/config.yaml
-- Update the file: config.yaml for the specific test setup. Change the management IP, username, and password for imc and acc if they are different.
-- Update the test_params section as required for the setup with the correct host, imc and acc script paths.
+- All-in-one configuration IPU adapter and a Link Partner NIC is connected to a single host server. Use Default ipu-playbook/ovs_offload/config.yaml
+- Update the file: config.yaml for the specific test setup. Change the management IP, username, and password for IMC and ACC if they are different.
+- Update the test_params section as required for the setup with the correct host, IMC and ACC script paths.
 - Update the idpf_interface, vf_interfaces in the config if the interface names are different.
 - Update lp_interfaces field with the correct Link Partner interface name if the Link Partner NIC is connected to the same host server.
 
@@ -230,18 +231,18 @@ test_params:
     remote_br_tun_ip: ['1.1.1.2','2.1.1.2']
 ```
 
-### 2 IPU Servers connected back to back configuration (config_host1.yaml and config_host2.yaml)
+### 2 IPU Servers Connected Back-to-Back Configuration (config_host1.yaml and config_host2.yaml)
 
-- 2 IPU Host servers are connected back to back.
+- 2 IPU host servers are connected back-to-back.
 - Host1 IPU Port0 <-----> Host2 IPU Port0
 - Host1 IPU Port1 <-----> Host2 IPU Port1
-- For IPU Host 1 server copy config_host1.yaml to config.yaml.
-- For IPU Host 2 server copy config_host2.yaml to config.yaml.
-- Run ovs_offload_lnw.py in the 2 IPU Host servers after copying the respective configs as above.
-- Update the file: config.yaml for the specific test setup. Change the management IP, username, and password for imc and acc if they are different.
-- Update the test_params section as required for the setup with the correct host, imc and acc script paths.
+- Copy config_host1.yaml to IPU Host 1 server and rename file to config.yaml.
+- Copy config_host2.yaml to IPU Host 2 server and rename file to config.yaml.
+- Run ovs_offload_lnw.py in the 2 IPU host servers after copying the respective configs as above.
+- Update the file: config.yaml for the specific test setup. Change the management IP, username, and password for IMC and ACC if they are different.
+- Update the test_params section as required for the setup with the correct host, IMC and ACC script paths.
 - Update the idpf_interface, vf_interfaces name in the config if the interface names are different.
-- Note that the lp_interfaces and lp_interface_ip fields below is empty as we are running in back to back mode and there is no Link Partner NIC connected to the same server.
+- Note that the lp_interfaces and lp_interface_ip fields below is empty as we are running in back-to-back mode and there is no Link Partner NIC connected to the same server.
 
 ### IPU Host 1
 
