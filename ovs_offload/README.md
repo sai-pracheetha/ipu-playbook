@@ -2,13 +2,28 @@
 
 ## Introduction
 
-- The ovs_offload_lnw.py tool can be used on an host server connected with Intel® Infrastructure Processing Unit via PCIe.
-- It is supported on IPU SDK release version >= 1.7.0 and makes use of the P4 package fxp-net_linux-networking.pkg
-- It creates the configuration to run the Linux Networking recipe with OVS Offloaded to the IPU ACC.
-- It can be used to start infrap4d on the ACC and program using the p4rt runtime rules to configure ACC port representors for the host IDPF interfaces and IPU Physical Port 0 and Port 1.
-- It can set up OVS bridges on the ACC using the port representors and configure VM namespaces for the IDPF interfaces on the Host.
-- Transport mode: The tool generates the OVS bridge configuration for transport mode with IPv4 encapsulation, use helper script 6_acc_ovs_bridge.sh.
-- Tunnel mode: The tool also generates the OVS bridge configuration for tunnel mode with VXLAN encapsulation, use helper script acc_ovs_vxlan.sh. Refer to the VXLAN section below.
+### Default bring-up and image update
+
+- The Intel® Infrastructure Processing Unit is connected to a host server via PCIe.
+- A 1GB port from the host server is connected to the IMC 1GB management interface.
+- Refer section `3.2.1. Default Bring-Up` in the `Intel IPU Software User Guide` for more information.
+- Refer section `3.2.2. Default Update Flow` in the `Intel IPU Software User Guide` and update the images on the IMC and ACC to an SDK release version >= 1.7.0.
+- The tool requires the P4 package `fxp-net_linux-networking.pkg` to be loaded on the IPU IMC. Refer the prerequisites section.
+
+### ovs_offload_lnw.py supported features
+
+- The `ovs_offload_lnw.py` tool is executed from the host server connected to an Intel IPU.
+- The tool uses the 1GB port on the host server to SSH to the IMC 1GB management interface to configure the IMC and ACC.
+- It automates the setup of the Linux networking recipe with OVS offloaded to the IPU ACC.
+- It configures infrap4d on the ACC, programs the p4rt runtime rules to setup the ACC port representors for the host IDPF interfaces and IPU physical ports.
+- OVS bridges are created on the ACC with the port representors.
+- Configures VM namespaces for the IDPF VF interfaces on the Host.
+- Refer section `3.3.1. IPU P4 Quick Start Guide` in the `Intel IPU Software User Guide` for more information.
+
+#### Supported modes
+
+- Transport mode: The tool generates the OVS bridge configuration for transport mode with IPv4 encapsulation.
+- Tunnel mode: The tool also generates the OVS bridge configuration for tunnel mode with VXLAN encapsulation. Refer the VXLAN section below.
 
 ## Supported Topologies
 
@@ -36,7 +51,7 @@ PermitRootLogin yes
 
 ## Prerequisites
 
-- The host package `intel-ipu-host-components-<version>.<build number>.tar.gz` contains the example IPU P4 source code, the compiled P4 package, and artifacts that can be used to set up the workload on the IMC and ACC.
+- The host package `intel-ipu-host-components-<version>.<build number>.tar.gz` contains the example IPU P4 source code, the compiled P4 package and artifacts that is used to set up OVS offload.
 - The compiled artifacts for P4 `fxp-net_linux-networking` can be found in the location below after you extract the tar package.
 
 ```bash
@@ -64,8 +79,9 @@ total 6.2M
 ssh root@100.0.0.100
 ```
 
-- Copy the P4 package `fxp-net_linux-networking.pkg` to the IMC /work/scripts/ directory and update script /work/scripts/load_custom_pkg.sh as shown below.
-- Reboot the IMC, on IMC bootup the P4 package and node policy configuration will be updated as shown in `/work/scripts/load_custom_pkg.sh`
+- Copy the P4 package `fxp-net_linux-networking.pkg` to the IMC /work/scripts/ directory.
+- Update the IMC script `/work/scripts/load_custom_pkg.sh` as shown in the example below.
+- Reboot the IMC. On IMC bootup, the P4 package and node policy configuration will be updated as specified in `/work/scripts/load_custom_pkg.sh`.
 
 #### Host 1 IPU IMC
 
