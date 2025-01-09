@@ -559,17 +559,22 @@ EOF
 
 def build_args():
     # Create the top-level parser
-    parser = argparse.ArgumentParser(description='Run Linux networking with OVS Offload')
-    subparsers = parser.add_subparsers(dest='command', help='options')
+    parser = argparse.ArgumentParser(description='Configure Linux Networking with OVS offload with IPv4 transport or VXLAN tunnel')
+    subparsers = parser.add_subparsers(dest='command')
     # Create the parser for the "create_script" command
     parser_create_script = subparsers.add_parser('create_script', help='Generate configuration scripts in localhost')
     # Create the parser for the "copy_script" command
-    parser_copy_script = subparsers.add_parser('copy_script', help='Copy configuration scripts to IMC and ACC')
-    # Create the parser for the "setup" command
-    parser_setup = subparsers.add_parser('setup', help='Setup the complete OVS offload Recipe, prerequisite: run copy_script option once for scripts to be available in ACC')
+    parser_copy_script = subparsers.add_parser('copy_script', help='Generate and copy configuration scripts to IMC and ACC')
+    # Create the parser for the "setup" command and add subparser for tunnel and transport mode
+    parser_setup = subparsers.add_parser('setup', help='Setup OVS offload with IPv4 transport or VXLAN tunnel, prerequisite: run copy_script option once for scripts to be available in ACC')
+    setup_subparsers = parser_setup.add_subparsers(dest='mode')
+    # Create the subparser for the "setup" command for transport mode
+    setup_subparsers.add_parser('transport', help='Setup OVS offload with IPv4 transport, prerequisite: run copy_script option once for scripts to be available in ACC')
+    # Create the subparser for the "setup" command for tunnel mode
+    setup_subparsers.add_parser('tunnel', help='Setup OVS offload with VXLAN tunnel, prerequisite: run copy_script option once for scripts to be available in ACC')
     # Create the parser for the "teardown" command
-    parser_teardown = subparsers.add_parser('teardown', help='Teardown the complete OVS offload Recipe, prerequisite: run copy_script option once for scripts to be available in ACC')
-    return parser
+    parser_teardown = subparsers.add_parser('teardown', help='Teardown and cleanup the OVS offload configuration, prerequisite: run copy_script option once for scripts to be available in ACC')
+    return parser, parser_setup
 
 
 if __name__ == "__main__":
@@ -587,13 +592,12 @@ if __name__ == "__main__":
     imc_login = f'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{imc_ip}'
     acc_login = f'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{acc_ip}'
 
-    parser = build_args()
+    parser, parser_setup = build_args()
     # Parse the arguments
     args = parser.parse_args()
 
     # Execute the appropriate function based on the subcommand
     if args.command == 'create_script':
-
         print("\n----------------Create OVS OFFLOAD scripts----------------")
         build_p4rt_config(test_setup = test_setup)
 
@@ -604,6 +608,9 @@ if __name__ == "__main__":
         test_setup.copy_scripts()
 
     elif args.command == 'setup':
+        if args.mode is None:
+            parser_setup.print_help()
+            sys.exit()
 
         if len(host_password) == 0:
             print("Enter correct IPU Host SSH root password in config.yaml and retry")
@@ -644,9 +651,17 @@ if __name__ == "__main__":
         print("\n----------------Setup OVS Environment on the ACC----------------")
         result = p4rt.tmux_send_keys('./5_acc_setup_ovs.sh', delay=10, output=True)
         print(result)
-        print("\n----------------Configure OVS Bridges----------------")
-        result = p4rt.tmux_send_keys('./6_acc_ovs_bridge.sh', delay=10, output=True)
-        print(result)
+
+        if args.mode == 'transport':
+            print("\n----------------Configure OVS Bridges on ACC in IPv4 transport mode----------------")
+            result = p4rt.tmux_send_keys('./6_acc_ovs_bridge.sh', delay=10, output=True)
+            print(result)
+
+        if args.mode == 'tunnel':
+            print("\n----------------Configure OVS Bridges on ACC in VXLAN tunnel mode----------------")
+            result = p4rt.tmux_send_keys('./acc_ovs_vxlan.sh', delay=10, output=True)
+            print(result)
+
 
         # Setup a TMUX session for the IPU host, configure the VMs, idpf interfaces, Link partner interfaces and run ping checks
         print("\n----------------Setup TMUX Session and Login to the Host----------------")
@@ -661,17 +676,22 @@ if __name__ == "__main__":
         result = host.tmux_send_keys('./7_host_vm.sh', delay=30, output=True)
         print(result)
 
-        print("\n----------------Configure the Link Partner Interfaces----------------")
-        for idx in range(len(lp_interfaces)):
-            result = host.tmux_send_keys(f'ip a a dev {lp_interfaces[idx]} {lp_interface_ip[idx]}/24', delay=3, output=True)
-        result = host.tmux_send_keys('ip -br a', delay=3, output=True)
-        print(result)
+        if lp_interfaces:
+            print("\n---------------- All-in-one setup: IPU and Link Partner connected to localhost ----------------")
+            print("\n---------------- Configure the Link Partner Interfaces in localhost ----------------")
+            for idx in range(len(lp_interfaces)):
+                result = host.tmux_send_keys(f'ip a a dev {lp_interfaces[idx]} {lp_interface_ip[idx]}/24', delay=3, output=True)
+            result = host.tmux_send_keys('ip -br a', delay=3, output=True)
+            print(result)
 
-        print("\n----------------PING TEST: LINK Partner to Host VM IDPF VF----------------")
-        print(f"\nLINK Partner Interface IP : {lp_interface_ip}")
-        print(f"\nHost VM IDPF VF Interface IP : {ip_list}\n")
-        for ip in ip_list:
-            ping_test(dst_ip=ip, count=4)
+            print("\n---------------- PING TEST : Link partner interface to VM IDPF VF interface in localhost ----------------")
+            print(f"\nLINK Partner Interface IP : {lp_interface_ip}")
+            print(f"\nHost VM IDPF VF Interface IP : {ip_list}\n")
+            for ip in ip_list:
+                ping_test(dst_ip=ip, count=4)
+        else:
+            print("\n---------------- Back-to-back setup: configure Link Partner in remote host----------------")
+        print("\n----------------OVS Offload setup in IPU ACC and VM configuration completed in localhost----------------")
 
     elif args.command == 'teardown':
 
