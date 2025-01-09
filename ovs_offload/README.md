@@ -387,14 +387,14 @@ test_params:
 
 ## Python environment setup for localhost
 
-#### Setup a python virtual environment
+### Setup a python virtual environment
 
 ```bash
 cd ipu-playbook/ovs_offload
 python -m venv --copies venv
 ```
 
-#### Activate the venv and install requirements:
+#### Activate the venv and install requirements
 
 ```bash
 # source venv/bin/activate
@@ -701,7 +701,6 @@ ping 20.0.0.10
 ip netns exec VM4 ping 20.0.0.30
 ```
 
-
 #### All-in-one setup VXLAN tunnel mode
 
 - Run simple script below to configure 1 VXLAN tunnel on the Link Partner Connected to Port 0
@@ -790,7 +789,7 @@ rtt min/avg/max/mdev = 0.040/0.048/0.058/0.007 ms
 - Host1 IPU Port1 <-----> Host2 IPU Port1
 - For IPU Host 1 server copy config_host1.yaml to config.yaml.
 
-#### Update the config.yaml for OVS VXLAN for IPU 1 Setup.
+#### Update the config.yaml for OVS VXLAN for IPU 1 Setup
 
 - For IPU Host 1 server copy config_host1.yaml to config.yaml.
 
@@ -809,7 +808,7 @@ test_params:
     remote_br_tun_ip: ['1.1.1.2','2.1.1.2']
 ```
 
-#### Update config.yaml for OVS VXLAN Config for IPU 2 Setup.
+#### Update config.yaml for OVS VXLAN Config for IPU 2 Setup
 
 - For IPU Host 2 server copy config_host2.yaml to config.yaml.
 
@@ -842,7 +841,7 @@ test_params:
 
 ## OVS Offload teardown manual execution
 
-#### IPU HOST Terminal 1: Delete the VMs created on the IPU Host
+### 1. IPU HOST Terminal: Delete the VMs created on the IPU Host
 
 ```bash
 ip netns del VM0
@@ -855,7 +854,7 @@ ip netns del VM6
 ip netns del VM7
 ```
 
-#### ACC Terminal 2 : Delete the OVS Bridge Config on the ACC
+### 2. ACC Terminal: Delete the OVS Bridge Config on the ACC
 
 ```bash
 #!/bin/sh
@@ -890,7 +889,7 @@ ovs-vsctl del-br br7
 ovs-vsctl show
 ```
 
-#### ACC Terminal 2: Delete the p4rt-ctl runtime rules
+### 3. ACC Terminal: Delete the p4rt-ctl runtime rules
 
 ```bash
 [root@ipu-acc ovs_offload_lnw_scripts]# pwd
@@ -901,13 +900,15 @@ ovs-vsctl show
 [root@ipu-acc ovs_offload_lnw_scripts]# ./4_acc_p4rt_dump.sh
 ```
 
-#### ACC Terminal 1: Terminate the infrap4d
+### 4. ACC Terminal: Terminate the infrap4d
+
+- If infrap4d is running in current ACC terminal
 
 ```bash
 [root@ipu-acc ~]# ctrl + c
 ```
 
-or
+- Kill the infrap4d process
 
 ```bash
 [root@ipu-acc ~]# ps -aux | grep infrap4d
