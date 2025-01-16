@@ -4,9 +4,11 @@ Welcome to the IPDK IPU Playbook repository! This repository is designed to prov
 
 ## Features
 
-#### OVS Offload
+### OVS Offload
+
 Offload Open vSwitch (OVS) operations to the IPU, enhancing network performance and efficiency. [View OVS offload guide here](./ovs_offload).
 
-#### IPsec Acceleration
+### IPsec Acceleration
+
 Offload IPsec operations to the IPU for improved security. [View IPsec acceleration guide here](./ipsec_accel).
 
