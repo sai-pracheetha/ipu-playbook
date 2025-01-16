@@ -11,4 +11,3 @@ Offload Open vSwitch (OVS) operations to the IPU, enhancing network performance 
 ### IPsec Acceleration
 
 Offload IPsec operations to the IPU for improved security. [View IPsec acceleration guide here](./ipsec_accel).
-
