@@ -95,6 +95,7 @@ lsmod | grep idpf
 modinfo idpf
 echo 8 > /sys/class/net/ens5f0/device/sriov_numvfs
 ```
+
 - Replace `ens5f0` above with the correct host IDPF interface to create 8 SR-IOV VFs on the host.
 
 ## IPU host test environment setup
@@ -361,7 +362,6 @@ test_params:
     remote_br_tun_ip: ['1.1.1.1','2.1.1.1']
     local_br_tun_ip: ['1.1.1.2','2.1.1.2']
 ```
-
 
 ## OVS Offload tool supported options
 
@@ -923,7 +923,6 @@ test_params:
 - Follow the instructions provided in previous sections to setup infrap4d, p4rt-ctl and OVS on both the IPU Peer setups.
 - VXLAN tunnels are setup between IPU1 VM0 to IPU2 VM0, IPU1 VM1 to IPU2 VM1, ..., IPU1 VM7 to IPU2 VM7
 - Ping from VM0 on IPU 1 Host to VM0 on IPU 2 Host should be successful. similarly ping between other VMs like VM1 IPU1 to VM1 IPU2 and so on
-
 
 ## OVS Offload teardown manual execution
 
