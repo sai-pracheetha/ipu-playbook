@@ -26,6 +26,11 @@ test_params:
     host_path: 'ovs_offload_lnw_scripts'
     imc_path: '/mnt/imc/p4_test'
     acc_path:  '/opt/p4/p4sde/p4_test'
+    p4_artifacts: '/ipu/MEV-TS/10393/intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking'
+    pf_mac: '00:00:00:00:10:14'
+    vf_mac: '00:00:00:00:11:14'
+    cxp_num_pages: ''
+    comm_vports: ''
     # Update the correct IDPF Interface on the Host
     idpf_interface: 'ens5f0'
     # Update the list of Host IDPF Interfaces on the Host to Map to ACC Port representors

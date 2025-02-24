@@ -23,6 +23,11 @@ test_params:
     host_path: 'ipsec_accel_scripts'
     imc_path: '/mnt/imc/p4_test'
     acc_path:  '/opt/'
+    p4_artifacts: '/ipu/MEV-TS/10393/intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking'
+    pf_mac: '00:00:00:00:20:14'
+    vf_mac: '00:00:00:00:21:14'
+    cxp_num_pages: '5'
+    comm_vports: '(([5,0],[4,0]),([0,3],[5,3]),([0,2],[4,3]))'
     # Update the correct IDPF Interface on the Host
     idpf_interface: 'ens4f0'
     # IPs for communication channel between host and ACC

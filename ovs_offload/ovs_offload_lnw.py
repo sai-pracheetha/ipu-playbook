@@ -5,20 +5,24 @@
 #
 # Python tool to setup Linux Networking with OVS Offload on Intel® Infrastructure Processing Unit (Intel® IPU)
 
-import sys,argparse
+import sys
+import argparse
 import os
+import time
 
 # Add the parent directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common.utils import *
+# from common.utils import *
+from common.utils import TestSetup, tmux_term, ping_test
 
-def build_p4rt_config(test_setup = None):
 
-    if test_setup == None:
+def build_p4rt_config(test_setup=None):
+
+    if test_setup is None:
         print("Unable to parse the config.yaml to generate test configuration")
         sys.exit()
 
-    host_idpf_intf= test_setup.test_config['test_params']['idpf_interface']
+    host_idpf_intf = test_setup.test_config['test_params']['idpf_interface']
     vf_list = test_setup.test_config['test_params']['vf_interfaces']
     acc_pr_list = test_setup.test_config['test_params']['acc_pr_interfaces']
     vm_ip_list = test_setup.test_config['test_params']['ip_list']
@@ -30,17 +34,21 @@ def build_p4rt_config(test_setup = None):
         print("ERROR: number of vfs and ACC PRs should be the same")
         return None
 
-    host_command_list = []
-    cmd = f"mkdir -p {path}"
-    host_command_list.append(cmd)
-
     file = f'{path}/1_host_idpf.sh'
     host_idpf = 'cat <<EOF > ./'+file+'''
 #!/bin/sh
 #Load the driver
 echo "Load the IDPF Driver on the Host"
+rmmod idpf
+sleep 10
+
+echo "stop firewalld"
+systemctl stop firewalld
+
+#Load the driver
+echo "Load the IDPF Driver on the Host"
 modprobe idpf
-sleep 4
+sleep 10
 
 echo ""
 echo "Check the Interfaces are up"
@@ -51,17 +59,21 @@ echo 8 > /sys/class/net/'''+host_idpf_intf+'''/device/sriov_numvfs
 
 echo ""
 echo "Wait for the interfaces to come up"
-sleep 5
+sleep 10
 ip -br a
 EOF
 '''
-    host_command_list.append(host_idpf)
-    host_command_list.append(f"chmod +x ./{file}")
-    #host_command_list.append(f"./{file}")
+    host_command_list = [f"mkdir -p {path}",
+                         host_idpf,
+                         f"chmod +x ./{file}",
+                         f"./{file}",
+                         "modinfo idpf | grep version",
+                         f"ethtool -i {host_idpf_intf} | grep -A 1 idpf"]
 
     for command in host_command_list:
         try:
             result = test_setup.ssh_command('host', command)
+            print(f"output:\n{result['output']}\n")
         except Exception as e:
             print(f"Failed with exception:\n{e}")
     time.sleep(5)
@@ -82,8 +94,8 @@ EOF
     for i in range(len(vf_list)):
 
         if str(vf_list[i]) == '0' or str(vf_list[i]) == '1':
-        #Physical port   VSI_ID  PORT             ACC port representer  VSI_ID    PORT
-        #Phy port 0      (0x0)    0     <---->    enp0s1f0d10         (0x11) 17   33
+            # Physical port   VSI_ID  PORT             ACC port representer  VSI_ID    PORT
+            # Phy port 0      (0x0)    0     <---->    enp0s1f0d10         (0x11) 17   33
             acc_pr = test_setup.get_interface_info(server_name='acc', interface_name=acc_pr_list[i])
             phy_to_acc += f"""echo ""
 echo "IPU Physical Port {vf_list[i]} maps to "
@@ -148,7 +160,6 @@ ip netns exec VM{vm_id} ip -br a
             vm_id += 1
 
         mac_list.append(str(acc_pr['mac']))
-
 
     misc = """p4rt-ctl add-entry br0 linux_networking_control.ipv4_lpm_root_lut "user_meta.cmeta.bit16_zeros=4/65535,priority=2048,action=linux_networking_control.ipv4_lpm_root_lut_action(0)"
 p4rt-ctl add-entry br0 linux_networking_control.tx_lag_table "user_meta.cmeta.lag_group_id=0/255,hash=0/7,priority=1,action=linux_networking_control.bypass"
@@ -220,16 +231,19 @@ echo ""
 echo "Setup the environment in ACC to run Infrap4d"
 export SDE_INSTALL=/opt/p4/p4sde
 export P4CP_INSTALL=/opt/p4/p4-cp-nws
-export DEPEND_INSTALL=\$P4CP_INSTALL
+export DEPEND_INSTALL=\\$P4CP_INSTALL
 export no_proxy=localhost,127.0.0.1,192.168.0.0/16
 export NO_PROXY=localhost,127.0.0.1,192.168.0.0/16
 unset http_proxy
 unset https_proxy
 
-bash \$P4CP_INSTALL/sbin/setup_env.sh \$P4CP_INSTALL \$SDE_INSTALL \$DEPEND_INSTALL
-sudo \$P4CP_INSTALL/sbin/copy_config_files.sh \$P4CP_INSTALL \$SDE_INSTALL
+bash \\$P4CP_INSTALL/sbin/setup_env.sh \\$P4CP_INSTALL \\$SDE_INSTALL \\$DEPEND_INSTALL
+sudo \\$P4CP_INSTALL/sbin/copy_config_files.sh \\$P4CP_INSTALL \\$SDE_INSTALL
 
 export OUTPUT_DIR='''+acc_p4_path+'''
+
+echo "stop firewalld"
+systemctl stop firewalld
 
 echo ""
 echo "Load the vfio-pci driver to bind the vfio-pci 00:01.6"
@@ -238,8 +252,8 @@ sudo /opt/p4/p4sde/bin/dpdk-devbind.py -b vfio-pci 00:01.6
 
 echo ""
 echo "Copy Infrap4d Config file es2k_skip_p4.conf to /usr/share/stratum/es2k/es2k_skip_p4.conf"
-touch \$OUTPUT_DIR/ipu.bin
-cp -f \$OUTPUT_DIR/es2k_skip_p4.conf /usr/share/stratum/es2k/es2k_skip_p4.conf
+touch \\$OUTPUT_DIR/ipu.bin
+cp -f \\$OUTPUT_DIR/es2k_skip_p4.conf /usr/share/stratum/es2k/es2k_skip_p4.conf
 
 echo ""
 echo "Verify the infrap4d config"
@@ -269,16 +283,16 @@ echo "Setup P4 Runtime Pipeline"
 echo "P4 Artifacts are in Folder : OUTPUT_DIR='''+acc_p4_path+'''"
 export SDE_INSTALL=/opt/p4/p4sde
 export P4CP_INSTALL=/opt/p4/p4-cp-nws
-export DEPEND_INSTALL=\$P4CP_INSTALL
+export DEPEND_INSTALL=\\$P4CP_INSTALL
 export OUTPUT_DIR='''+acc_p4_path+'''
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
 
-tdi_pipeline_builder --p4c_conf_file=/usr/share/stratum/es2k/es2k_skip_p4.conf --tdi_pipeline_config_binary_file=\$OUTPUT_DIR/fxp-net_linux-networking.pb.bin
+tdi_pipeline_builder --p4c_conf_file=/usr/share/stratum/es2k/es2k_skip_p4.conf --tdi_pipeline_config_binary_file=\\$OUTPUT_DIR/fxp-net_linux-networking.pb.bin
 
 sleep 2
 echo ""
 echo "Use p4rt-ctl set-pipe to setup the runtime pipeline"
-p4rt-ctl set-pipe br0 \$OUTPUT_DIR/fxp-net_linux-networking.pb.bin \$OUTPUT_DIR/p4Info.txt
+p4rt-ctl set-pipe br0 \\$OUTPUT_DIR/fxp-net_linux-networking.pb.bin \\$OUTPUT_DIR/p4Info.txt
 sleep 2
 echo ""
 echo "Get IDPF Interface MAC and VSI info from IMC command : cli_client -q -c"
@@ -304,7 +318,7 @@ EOF
 echo "Delete the P4 Runtime Rules"
 export SDE_INSTALL=/opt/p4/p4sde
 export P4CP_INSTALL=/opt/p4/p4-cp-nws
-export DEPEND_INSTALL=\$P4CP_INSTALL
+export DEPEND_INSTALL=\\$P4CP_INSTALL
 export OUTPUT_DIR='''+acc_p4_path+'''
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
 
@@ -337,7 +351,7 @@ echo "Setup P4 Runtime Pipeline"
 echo "P4 Artifacts are in Folder : OUTPUT_DIR='''+acc_p4_path+'''"
 export SDE_INSTALL=/opt/p4/p4sde
 export P4CP_INSTALL=/opt/p4/p4-cp-nws
-export DEPEND_INSTALL=\$P4CP_INSTALL
+export DEPEND_INSTALL=\\$P4CP_INSTALL
 export OUTPUT_DIR='''+acc_p4_path+'''
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
 
@@ -396,21 +410,21 @@ echo ""
 echo "Setup the Environment to run OVS"
 export SDE_INSTALL=/opt/p4/p4sde
 export P4CP_INSTALL=/opt/p4/p4-cp-nws
-export DEPEND_INSTALL=\$P4CP_INSTALL
+export DEPEND_INSTALL=\\$P4CP_INSTALL
 export OUTPUT_DIR='''+acc_p4_path+'''
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
 export RUN_OVS=/opt/p4/p4-cp-nws
 
-rm -rf \$RUN_OVS/etc/openvswitch
-rm -rf \$RUN_OVS/var/run/openvswitch
-mkdir -p \$RUN_OVS/etc/openvswitch/
-mkdir -p \$RUN_OVS/var/run/openvswitch
+rm -rf \\$RUN_OVS/etc/openvswitch
+rm -rf \\$RUN_OVS/var/run/openvswitch
+mkdir -p \\$RUN_OVS/etc/openvswitch/
+mkdir -p \\$RUN_OVS/var/run/openvswitch
 
-ovsdb-tool create \$RUN_OVS/etc/openvswitch/conf.db \$RUN_OVS/share/openvswitch/vswitch.ovsschema
+ovsdb-tool create \\$RUN_OVS/etc/openvswitch/conf.db \\$RUN_OVS/share/openvswitch/vswitch.ovsschema
 
 echo ""
 echo "Start the ovsdb-server"
-ovsdb-server --remote=punix:\$RUN_OVS/var/run/openvswitch/db.sock --remote=db:Open_vSwitch,Open_vSwitch,manager_options --pidfile --detach
+ovsdb-server --remote=punix:\\$RUN_OVS/var/run/openvswitch/db.sock --remote=db:Open_vSwitch,Open_vSwitch,manager_options --pidfile --detach
 
 ovs-vsctl --no-wait init
 
@@ -436,7 +450,7 @@ EOF
 echo "Setup the Environment to run OVS"
 export SDE_INSTALL=/opt/p4/p4sde
 export P4CP_INSTALL=/opt/p4/p4-cp-nws
-export DEPEND_INSTALL=\$P4CP_INSTALL
+export DEPEND_INSTALL=\\$P4CP_INSTALL
 export OUTPUT_DIR='''+acc_p4_path+'''
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
 export RUN_OVS=/opt/p4/p4-cp-nws
@@ -497,7 +511,6 @@ EOF
 '''
     command_list.append(acc_ovs_bridge)
 
-
     file = f'{path}/acc_ovs_vxlan.sh'
     acc_ovs_vxlan = 'cat <<EOF > ./'+file+'''
 #!/bin/sh
@@ -505,7 +518,7 @@ EOF
 echo "Setup the Environment to run OVS"
 export SDE_INSTALL=/opt/p4/p4sde
 export P4CP_INSTALL=/opt/p4/p4-cp-nws
-export DEPEND_INSTALL=\$P4CP_INSTALL
+export DEPEND_INSTALL=\\$P4CP_INSTALL
 export OUTPUT_DIR='''+acc_p4_path+'''
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
 export RUN_OVS=/opt/p4/p4-cp-nws
@@ -561,24 +574,31 @@ def build_args():
     # Create the top-level parser
     parser = argparse.ArgumentParser(description='Configure Linux Networking with OVS offload with IPv4 transport or VXLAN tunnel')
     subparsers = parser.add_subparsers(dest='command')
-    # Create the parser for the "create_script" command
-    parser_create_script = subparsers.add_parser('create_script', help='Generate configuration scripts in localhost')
-    # Create the parser for the "copy_script" command
-    parser_copy_script = subparsers.add_parser('copy_script', help='Generate and copy configuration scripts to IMC and ACC')
+    # Create the parser for the "load_package" command and add subparser for linux_networking and default mode
+    parser_load_package = subparsers.add_parser('load_package', help='Update the P4 package on the IMC and reboot IMC')
+    load_package_subparsers = parser_load_package.add_subparsers(dest='mode')
+    # Create the subparser for the "load_package" command for linux networking
+    load_package_subparsers.add_parser('linux_networking', help='load p4 package fxp-net_linux-networking.pkg and perform IMC reboot')
+    # Create the subparser for the "load_package" command for default package
+    load_package_subparsers.add_parser('default', help='Revert to the default P4 package e2100-default-<version>.pkg and perform IMC reboot')
     # Create the parser for the "setup" command and add subparser for tunnel and transport mode
-    parser_setup = subparsers.add_parser('setup', help='Setup OVS offload with IPv4 transport or VXLAN tunnel, prerequisite: run copy_script option once for scripts to be available in ACC')
+    parser_setup = subparsers.add_parser('setup', help='Setup OVS offload with IPv4 transport or VXLAN tunnel, prerequisite: Update the P4 package to fxp-net_linux-networking with load_package option')
     setup_subparsers = parser_setup.add_subparsers(dest='mode')
     # Create the subparser for the "setup" command for transport mode
     setup_subparsers.add_parser('transport', help='Setup OVS offload with IPv4 transport, prerequisite: run copy_script option once for scripts to be available in ACC')
     # Create the subparser for the "setup" command for tunnel mode
     setup_subparsers.add_parser('tunnel', help='Setup OVS offload with VXLAN tunnel, prerequisite: run copy_script option once for scripts to be available in ACC')
     # Create the parser for the "teardown" command
-    parser_teardown = subparsers.add_parser('teardown', help='Teardown and cleanup the OVS offload configuration, prerequisite: run copy_script option once for scripts to be available in ACC')
-    return parser, parser_setup
+    subparsers.add_parser('teardown', help='Teardown and cleanup the OVS offload configuration')
+    # Create the parser for the "create_script" command
+    subparsers.add_parser('create_script', help='Debug Only: Generate configuration scripts in localhost')
+    # Create the parser for the "copy_script" command
+    subparsers.add_parser('copy_script', help='Debug Only: Copy configuration scripts to IMC and ACC for manual deployment')
+    return parser, parser_load_package, parser_setup
 
 
 if __name__ == "__main__":
-    test_setup = TestSetup(config_file = f'{os.path.dirname(os.path.abspath(__file__))}/config.yaml')
+    test_setup = TestSetup(config_file=f'{os.path.dirname(os.path.abspath(__file__))}/config.yaml')
     host_path = test_setup.test_config['test_params']['host_path']
     imc_path = test_setup.test_config['test_params']['imc_path']
     acc_path = test_setup.test_config['test_params']['acc_path']
@@ -592,20 +612,23 @@ if __name__ == "__main__":
     imc_login = f'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{imc_ip}'
     acc_login = f'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@{acc_ip}'
 
-    parser, parser_setup = build_args()
+    parser, parser_load_package, parser_setup = build_args()
     # Parse the arguments
     args = parser.parse_args()
 
     # Execute the appropriate function based on the subcommand
-    if args.command == 'create_script':
-        print("\n----------------Create OVS OFFLOAD scripts----------------")
-        build_p4rt_config(test_setup = test_setup)
+    if args.command == 'load_package':
+        if args.mode is None:
+            parser_load_package.print_help()
+            sys.exit()
 
-    elif args.command == 'copy_script':
-        print("\n----------------Create OVS OFFLOAD scripts----------------")
-        build_p4rt_config(test_setup = test_setup)
-        print("\n----------------Copy OVS OFFLOAD scripts to the ACC----------------")
-        test_setup.copy_scripts()
+        if args.mode == 'linux_networking':
+            print("\n----------------Load the P4 package fxp-net_linux-networking.pkg on IMC and reboot IPU----------------")
+            test_setup.load_custom_package(p4='fxp-net_linux-networking')
+
+        if args.mode == 'default':
+            print("\n----------------Revert to Default P4 package e2100-default-<version>.pkg on IMC and reboot IPU----------------")
+            test_setup.load_custom_package(p4='default')
 
     elif args.command == 'setup':
         if args.mode is None:
@@ -616,11 +639,16 @@ if __name__ == "__main__":
             print("Enter correct IPU Host SSH root password in config.yaml and retry")
             sys.exit()
 
+        print("\n----------------Create OVS OFFLOAD scripts----------------")
+        build_p4rt_config(test_setup=test_setup)
+        print("\n----------------Copy OVS OFFLOAD scripts to the ACC----------------")
+        test_setup.copy_scripts()
+
         print("\n----------------Setup Linux Networking with OVS OFFLOAD----------------")
 
         # Setup a TMUX session, Login to ACC and start infrap4d
         print("\n----------------Setup TMUX Session, Login to ACC----------------")
-        infrap4d = tmux_term(test_setup=test_setup, tmux_name="test1_infrap4d",tmux_override=True)
+        infrap4d = tmux_term(test_setup=test_setup, tmux_name="test1_infrap4d", tmux_override=True)
         result = infrap4d.tmux_send_keys(imc_login, delay=2, output=True)
         result = infrap4d.tmux_send_keys(acc_login, delay=2, output=True)
 
@@ -636,7 +664,7 @@ if __name__ == "__main__":
 
         # Setup a TMUX session, Login to ACC, configure p4rt rules and ovs bridges
         print("\n----------------Setup TMUX Session, Login to ACC----------------")
-        p4rt = tmux_term(test_setup=test_setup, tmux_name="test2_p4rt",tmux_override=True)
+        p4rt = tmux_term(test_setup=test_setup, tmux_name="test2_p4rt", tmux_override=True)
         result = p4rt.tmux_send_keys(imc_login, delay=2)
         result = p4rt.tmux_send_keys(acc_login, delay=2)
         result = p4rt.tmux_send_keys(f'cd {acc_path}/{host_path}', delay=2, output=True)
@@ -662,10 +690,9 @@ if __name__ == "__main__":
             result = p4rt.tmux_send_keys('./acc_ovs_vxlan.sh', delay=10, output=True)
             print(result)
 
-
         # Setup a TMUX session for the IPU host, configure the VMs, idpf interfaces, Link partner interfaces and run ping checks
         print("\n----------------Setup TMUX Session and Login to the Host----------------")
-        host = tmux_term(test_setup=test_setup, tmux_name="test3_host",tmux_override=True)
+        host = tmux_term(test_setup=test_setup, tmux_name="test3_host", tmux_override=True)
         result = host.tmux_send_keys(f'cd {host_path}', delay=2, output=True)
         result = host.tmux_send_keys('sudo -s', delay=2, output=True)
         result = host.tmux_send_keys(f'{host_password}', delay=2, output=True)
@@ -676,7 +703,7 @@ if __name__ == "__main__":
         result = host.tmux_send_keys('./7_host_vm.sh', delay=30, output=True)
         print(result)
 
-        if lp_interfaces:
+        if lp_interfaces and args.mode == 'transport':
             print("\n---------------- All-in-one setup: IPU and Link Partner connected to localhost ----------------")
             print("\n---------------- Configure the Link Partner Interfaces in localhost ----------------")
             for idx in range(len(lp_interfaces)):
@@ -702,7 +729,7 @@ if __name__ == "__main__":
         print("\n----------------Teardown Linux Networking with OVS OFFLOAD----------------")
 
         print("\n----------------Setup TMUX Session and Login to the Host----------------")
-        host = tmux_term(test_setup=test_setup, tmux_name="test3_host",tmux_override=True)
+        host = tmux_term(test_setup=test_setup, tmux_name="test3_host", tmux_override=True)
         result = host.tmux_send_keys(f'cd {host_path}', delay=2, output=True)
         result = host.tmux_send_keys('sudo -s', delay=2, output=True)
         result = host.tmux_send_keys(f'{host_password}', delay=2, output=True)
@@ -727,13 +754,13 @@ ip netns del VM7
         print(result)
 
         print("\n----------------Setup TMUX Session, Login to ACC----------------")
-        p4rt = tmux_term(test_setup=test_setup, tmux_name="test2_p4rt",tmux_override=True)
+        p4rt = tmux_term(test_setup=test_setup, tmux_name="test2_p4rt", tmux_override=True)
         result = p4rt.tmux_send_keys(imc_login, delay=2)
         result = p4rt.tmux_send_keys(acc_login, delay=2)
         result = p4rt.tmux_send_keys(f'cd {acc_path}/{host_path}', delay=2, output=True)
 
         print("\n----------------Cleanup OVS Bridge Configuration----------------")
-        command = f'''export SDE_INSTALL=/opt/p4/p4sde
+        command = '''export SDE_INSTALL=/opt/p4/p4sde
 export P4CP_INSTALL=/opt/p4/p4-cp-nws
 export DEPEND_INSTALL=$P4CP_INSTALL
 export PATH=/root/.local/bin:/root/bin:/usr/share/Modules/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/opt/p4/p4-cp-nws/bin:/opt/p4/p4-cp-nws/sbin
@@ -774,12 +801,21 @@ ovs-vsctl show
         print(result)
 
         print("\n----------------Stop Infrap4d on the ACC----------------")
-        infrap4d = tmux_term(test_setup=test_setup, tmux_name="test1_infrap4d",tmux_override=True)
+        infrap4d = tmux_term(test_setup=test_setup, tmux_name="test1_infrap4d", tmux_override=True)
         result = infrap4d.tmux_send_keys(imc_login, delay=2, output=True)
         result = infrap4d.tmux_send_keys(acc_login, delay=2, output=True)
         result = infrap4d.tmux_send_keys('ps -aux | grep infrap4d', delay=2, output=True)
         print(result)
 
+    elif args.command == 'create_script':
+        print("\n----------------Create OVS OFFLOAD scripts----------------")
+        build_p4rt_config(test_setup=test_setup)
+
+    elif args.command == 'copy_script':
+        print("\n----------------Create OVS OFFLOAD scripts----------------")
+        build_p4rt_config(test_setup=test_setup)
+        print("\n----------------Copy OVS OFFLOAD scripts to the ACC----------------")
+        test_setup.copy_scripts()
+
     else:
         parser.print_help()
-

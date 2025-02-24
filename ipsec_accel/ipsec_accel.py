@@ -36,36 +36,41 @@ def build_p4rt_config(test_setup = None):
         print("ERROR: number of vfs and ACC PRs should be the same")
         return None
 
-    host_command_list = []
-    cmd = f"mkdir -p {path}"
-    host_command_list.append(cmd)
-
     file = f'{path}/1_host_idpf.sh'
     host_idpf = 'cat <<EOF > ./'+file+'''
 #!/bin/sh
 #Load the driver
 echo "Load the IDPF Driver on the Host"
+rmmod idpf
+sleep 10
+
+echo "stop firewalld"
+systemctl stop firewalld
+
+#Load the driver
+echo "Load the IDPF Driver on the Host"
 modprobe idpf
-sleep 4
+sleep 10
 
 echo ""
-echo "Checking if the interfaces are up"
+echo "Check the Interfaces are up"
 ip -br a
-
 #Setup number of sriov devices on the IDPF interface
 echo "Create SRIOV VFs on IDPF interface '''+host_idpf_intf+'''"
 echo 8 > /sys/class/net/'''+host_idpf_intf+'''/device/sriov_numvfs
 
 echo ""
-echo "Waiting for the interfaces to come up"
-sleep 5
+echo "Wait for the interfaces to come up"
+sleep 10
 ip -br a
-
 EOF
 '''
-
-    host_command_list.append(host_idpf)
-    host_command_list.append(f"chmod +x ./{file}")
+    host_command_list = [f"mkdir -p {path}",
+                         host_idpf,
+                         f"chmod +x ./{file}",
+                         f"./{file}",
+                         "modinfo idpf | grep version",
+                         f"ethtool -i {host_idpf_intf} | grep -A 1 idpf"]
 
 
     file = f'{path}/setup_host_comm_channel.sh'
@@ -83,8 +88,6 @@ EOF
 '''
     host_command_list.append(host_comm_channel)
     host_command_list.append(f"chmod +x ./{file}")
-
-
 
     for command in host_command_list:
         try:
@@ -353,7 +356,7 @@ echo "Set hugepages"
 sudo /opt/p4/p4sde/bin/dpdk-hugepages.py -p 2M -r 2G
 
 echo ""
-echo "stop fiewall"
+echo "stop firewall"
 systemctl stop firewalld
 
 
@@ -842,10 +845,13 @@ def build_args():
     # Create the top-level parser
     parser = argparse.ArgumentParser(description='Run Linux networking with IPsec Offload')
     subparsers = parser.add_subparsers(dest='command', help='options')
-    # Create the parser for the "create_script" command
-    parser_create_script = subparsers.add_parser('create_script', help='Generate configuration scripts in localhost')
-    # Create the parser for the "copy_script" command
-    parser_copy_script = subparsers.add_parser('copy_script', help='Copy configuration scripts to IMC and ACC')
+    # Create the parser for the "load_package" command and add subparser for linux_networking and default mode
+    parser_load_package = subparsers.add_parser('load_package', help='Update the P4 package on the IMC and reboot IMC')
+    load_package_subparsers = parser_load_package.add_subparsers(dest='mode')
+    # Create the subparser for the "load_package" command for linux networking
+    load_package_subparsers.add_parser('linux_networking', help='load p4 package fxp-net_linux-networking.pkg and perform IMC reboot')
+    # Create the subparser for the "load_package" command for default package
+    load_package_subparsers.add_parser('default', help='Revert to the default P4 package e2100-default-<version>.pkg and perform IMC reboot')
     # Create the parser for the "setup" command
     parser_setup = subparsers.add_parser('setup', help='Setup the complete OVS offload Recipe, prerequisite: run copy_script option once for scripts to be available in ACC')
     # Create the parser for the "ipsec_transport" command
@@ -854,7 +860,11 @@ def build_args():
     parser_setup = subparsers.add_parser('ipsec_tunnel', help='Setup the IPsec configs for tunnel mode, prerequisite: run copy_script option once for scripts to be available in Host & ACC')
     # Create the parser for the "teardown" command
     parser_teardown = subparsers.add_parser('teardown', help='Teardown the IPsec offload Recipe, prerequisite: run copy_script option once for scripts to be available in ACC')
-    return parser
+    # Create the parser for the "create_script" command
+    parser_create_script = subparsers.add_parser('create_script', help='Generate configuration scripts in localhost')
+    # Create the parser for the "copy_script" command
+    parser_copy_script = subparsers.add_parser('copy_script', help='Copy configuration scripts to IMC and ACC')
+    return parser, parser_load_package
 
 
 if __name__ == "__main__":
@@ -872,23 +882,24 @@ if __name__ == "__main__":
     strongSwan_build = test_setup.test_config['test_params']['strongSwan_build']
     ipsec_host = test_setup.test_config['test_params']['ipsec_host']
 
-    parser = build_args()
+    parser, parser_load_package = build_args()
     # Parse the arguments
     args = parser.parse_args()
 
     host_ipsec = tmux_term(test_setup=test_setup, tmux_name="test_host_ipsec",tmux_override=True)
     # Execute the appropriate function based on the subcommand
-    if args.command == 'create_script':
-        print("\n----------------Create IPsec Offload scripts----------------")
-        build_p4rt_config(test_setup = test_setup)
+    if args.command == 'load_package':
+         if args.mode is None:
+             parser_load_package.print_help()
+             sys.exit()
 
-    elif args.command == 'copy_script':
-        print("\n----------------Create IPsec Offload scripts----------------")
-        build_p4rt_config(test_setup = test_setup)
-        #build_p4rt_config(vf_list=vf_interfaces, acc_pr_list=acc_pr_interfaces, vm_ip_list=ip_list, host_idpf_intf=idpf_interface, path=host_path, \
-        #                    comm_ip_host=comm_ip_host, comm_ip_acc=comm_ip_acc, ipsec_host=ipsec_host)
-        print("\n----------------Copy IPsec Offload scripts to the ACC----------------")
-        test_setup.copy_scripts()
+         if args.mode == 'linux_networking':
+             print("\n----------------Load the P4 package fxp-net_linux-networking.pkg on IMC and reboot IPU----------------")
+             test_setup.load_custom_package(p4='fxp-net_linux-networking')
+
+         if args.mode == 'default':
+             print("\n----------------Revert to Default P4 package e2100-default-<version>.pkg on IMC and reboot IPU----------------")
+             test_setup.load_custom_package(p4='default')
 
     elif args.command == 'setup':
 
@@ -896,8 +907,12 @@ if __name__ == "__main__":
             print("Enter correct IPU Host SSH root password in config.yaml and retry")
             sys.exit()
 
-        print("\n----------------Setup Linux Networking for IPsec Offload----------------")
+        print("\n----------------Create IPsec Offload scripts----------------")
+        build_p4rt_config(test_setup = test_setup)
+        print("\n----------------Copy IPsec Offload scripts to the ACC----------------")
+        test_setup.copy_scripts()
 
+        print("\n----------------Setup Linux Networking for IPsec Offload----------------")
 
         # Setup a TMUX session, for host comm channel
         print("\n----------------Setup TMUX Session and Login to the Host----------------")
@@ -1093,6 +1108,16 @@ ovs-vsctl show
         result = infrap4d.tmux_send_keys(acc_login, delay=2, output=True)
         result = infrap4d.tmux_send_keys('ps -aux | grep infrap4d', delay=2, output=True)
         print(result)
+
+    elif args.command == 'create_script':
+        print("\n----------------Create IPsec Offload scripts----------------")
+        build_p4rt_config(test_setup = test_setup)
+
+    elif args.command == 'copy_script':
+        print("\n----------------Create IPsec Offload scripts----------------")
+        build_p4rt_config(test_setup = test_setup)
+        print("\n----------------Copy IPsec Offload scripts to the ACC----------------")
+        test_setup.copy_scripts()
 
     else:
         parser.print_help()
