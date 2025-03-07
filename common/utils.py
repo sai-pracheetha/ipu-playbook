@@ -163,7 +163,10 @@ class TestSetup:
 
         print("\n----------------Rebooting IMC, Please wait for IMC and ACC to bootup----------------")
         command = "reboot"
-        result = self.ssh_command('imc', command)
+        try:
+            result = self.ssh_command('imc', command)
+        except Exception as e:
+            print(f"Rebooting IMC in Progress, \n{e}")
         print(f"output:\n{result['output']}\n")
 
         time.sleep(20)
@@ -469,9 +472,9 @@ EOF
                     print(f"output:\n{result['output']}\n")
                 except Exception as e:
                     print(f"P4 SDE binaries are missing, extracting ACC tarball /opt/p4.tar.gz:\nException {e}")
-                    command = 'tar -xvf /opt/p4.tar.gz -C /opt/ > /dev/null 2>&1 &'
+                    command = 'tar -xvf /opt/p4.tar.gz -C /opt/ > /dev/null 2>&1'
                     result = self.ssh_command('acc', command)
-                    time.sleep(30)
+                    time.sleep(20)
                     command = 'ls /opt/p4/p4sde/bin/'
                     result = self.ssh_command('acc', command)
                     print(f"output:\n{result['output']}\n")
