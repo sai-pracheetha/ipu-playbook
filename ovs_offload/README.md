@@ -22,8 +22,11 @@
 
 #### Supported modes
 
-- Transport mode: The tool generates the OVS bridge configuration for transport mode with IPv4 encapsulation.
-- Tunnel mode: The tool also generates the OVS bridge configuration for tunnel mode with VXLAN encapsulation. Refer the VXLAN section below.
+- load_package linux_networking: Copy the P4 artifacts to IMC and ACC, update the P4 package and node policy with IPU reboot.
+- setup transport : Setup OVS bridge configuration for transport mode with IPv4 encapsulation.
+- setup tunnel : Setup OVS bridge configuration for tunnel mode with VXLAN encapsulation. Refer the VXLAN section below.
+- teardown : Cleanup the OVS bridge and P4 runtime configuration
+- load_package default: Revert to default P4 package and node policy with IPU reboot.
 
 ## Supported Topologies
 
@@ -41,18 +44,13 @@
 - For IPU Host 1 server copy config_host1.yaml to config.yaml.
 - For IPU Host 2 server copy config_host2.yaml to config.yaml.
 
-## IPU host test environment setup
-
-Before running the script, make sure `/etc/ssh/sshd_config` contains the line for root user.
-
-```bash
-PermitRootLogin yes
-```
-
 ## Prerequisites
+
+### P4 Package for fxp-net_linux-networking
 
 - The host package `intel-ipu-host-components-<version>.<build number>.tar.gz` contains the example IPU P4 source code, the compiled P4 package and artifacts that is used to set up OVS offload.
 - The compiled artifacts for P4 `fxp-net_linux-networking` can be found in the location below after you extract the tar package.
+- Update the config.yaml file test_params[p4_artifacts] field with the absolute path to below folder.
 
 ```bash
 cd intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking
@@ -70,110 +68,16 @@ total 6.2M
 
 ```
 
-### 1. IMC setup to load the P4 package
-
-- Load the P4 package `fxp-net_linux-networking.pkg` on the IMC. Refer Section `IPU P4 Quickstart Guide` in the Intel® Infrastructure Processing Unit Software User Guide
-- Login to the IPU IMC from the localhost, default IMC IP is `100.0.0.100`
-
-```bash
-ssh root@100.0.0.100
-```
-
-- Copy the P4 package `fxp-net_linux-networking.pkg` to the IMC /work/scripts/ directory.
-- Update the IMC script `/work/scripts/load_custom_pkg.sh` as shown in the example below.
-- Reboot the IMC. On IMC bootup, the P4 package and node policy configuration will be updated as specified in `/work/scripts/load_custom_pkg.sh`.
-
-#### Host 1 IPU IMC
-
-```bash
-[root@ipu-imc ~]# cat /work/scripts/load_custom_pkg.sh
-#!/bin/sh
-CP_INIT_CFG=/etc/dpcp/cfg/cp_init.cfg
-echo "Checking for custom package..."
-if [ -e /work/scripts/fxp-net_linux-networking.pkg ]; then
-    echo "Custom package fxp-net_linux-networking.pkg found. Overriding default package"
-    cp  /work/scripts/fxp-net_linux-networking.pkg /etc/dpcp/package/
-    rm -rf /etc/dpcp/package/default_pkg.pkg
-    ln -s /etc/dpcp/package/fxp-net_linux-networking.pkg /etc/dpcp/package/default_pkg.pkg
-    sed -i 's/sem_num_pages = .*;/sem_num_pages = 28;/g' $CP_INIT_CFG
-    sed -i 's/lem_num_pages = .*;/lem_num_pages = 32;/g' $CP_INIT_CFG
-    sed -i 's/mod_num_pages = .*;/mod_num_pages = 2;/g' $CP_INIT_CFG
-    sed -i 's/acc_apf = 4;/acc_apf = 16;/g' $CP_INIT_CFG
-else
-    echo "No custom package found. Continuing with default package"
-fi
-```
-
-#### Host 2 IPU IMC
-
-- For two IPU host servers connected back-to-back we modify the default MAC addresses of the IPU interfaces.
-- The MAC suffix is updated for the pf_mac_address and vf_mac_address in the default node policy `/etc/dpcp/cfg/cp_init.cfg` in the Host 2 IPU IMC.
-- This ensures that there are no MAC address conflicts and the Host 2 IPU adapter interfaces use a different MAC address.
-
-```bash
-[root@ipu-imc ~]# cat /work/scripts/load_custom_pkg.sh
-#!/bin/sh
-CP_INIT_CFG=/etc/dpcp/cfg/cp_init.cfg
-echo "Checking for custom package..."
-sed -i 's/pf_mac_address = "00:00:00:00:03:14";/pf_mac_address = "00:00:00:00:04:14";/g' $CP_INIT_CFG
-sed -i 's/vf_mac_address = "";/vf_mac_address = "00:00:00:00:06:14";/g' $CP_INIT_CFG
-if [ -e /work/scripts/fxp-net_linux-networking.pkg ]; then
-    echo "Custom package fxp-net_linux-networking.pkg found. Overriding default package"
-    cp  /work/scripts/fxp-net_linux-networking.pkg /etc/dpcp/package/
-    rm -rf /etc/dpcp/package/default_pkg.pkg
-    ln -s /etc/dpcp/package/fxp-net_linux-networking.pkg /etc/dpcp/package/default_pkg.pkg
-    sed -i 's/sem_num_pages = .*;/sem_num_pages = 28;/g' $CP_INIT_CFG
-    sed -i 's/lem_num_pages = .*;/lem_num_pages = 32;/g' $CP_INIT_CFG
-    sed -i 's/mod_num_pages = .*;/mod_num_pages = 2;/g' $CP_INIT_CFG
-    sed -i 's/acc_apf = 4;/acc_apf = 16;/g' $CP_INIT_CFG
-else
-    echo "No custom package found. Continuing with default package"
-fi
-```
-
-- After IMC reboots, the above script will update the P4 package to `fxp-net_linux-networking.pkg` and the default node policy `/etc/dpcp/cfg/cp_init.cfg`.
-
-```bash
-[root@ipu-imc ~]# ls -lrt /etc/dpcp/package/
-total 2852
--rw-r--r-- 1 root root 1532240 Jan  1 00:00 fxp-net_linux-networking.pkg
-lrwxr-xr-x 1 root root      46 Jan  1 00:00 default_pkg.pkg -> /etc/dpcp/package/fxp-net_linux-networking.pkg
-drwxr-xr-x 2 root root    4096 Sep 11  2024 runtime_files
--rw-r--r-- 1 root root 1376720 Sep 11  2024 e2100-default-1.0.30.0.pkg
-```
-
-### 2. ACC setup for P4 binaries and artifacts
-
-- Extract /opt/p4.tar.gz in the ACC and copy P4 artifacts for fxp-net_linux-networking to the ACC
-- Login to the IPU IMC from the localhost, default IMC IP is `100.0.0.100`
-
-```bash
-ssh root@100.0.0.100
-```
-
-- IPU ACC is only reachable from the IMC console by default
-- Login to ACC from the IMC, default ACC IP is `192.168.0.2`
-
-```bash
-[root@ipu-imc ~]# ssh root@192.168.0.2
-```
-
-- Extract /opt/p4.tar.gz in the ACC, this package contains the binaries required to setup OVS offload in the ACC
-
-```bash
-[root@ipu-acc ~]# cd /opt/
-[root@ipu-acc opt]# tar -xvf p4.tar.gz
-```
-
-- Copy the P4 artifacts folder `intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking` from the same IPU SDK release version being tested to the IMC and then to the ACC location `/opt/p4/p4sde/p4_test/fxp-net_linux-networking`.
-
-### 3. Host IDPF driver and interface setup
+### Host IDPF driver and interface setup
 
 - Extract The host package `intel-ipu-host-components-<version>.<build number>.tar.gz`, this contains the IDPF source and pre-built RPMs for RHEL and Rocky Linux.
 - If using some other flavor of Linux, run the following commands as a root user to build the IDPF driver from source
 - Make sure the same version of IDPF driver is loaded on the host, IMC and ACC
 
 ```bash
+yum install make
+yum install "kernel-devel-uname-r == $(uname -r)"
+
 cd intel-ipu-host-components/IDPF
 tar -xvf idpf-<version>.tar.gz
 cd idpf-<version>
@@ -181,7 +85,7 @@ make
 make install
 ```
 
-- Load the IDPF Driver and create 8 SR-IOV VFs using the commands below
+- Load the IDPF Driver and create 8 SR-IOV VFs and verify the interfaces come up
 
 ```bash
 sudo -i
@@ -194,7 +98,15 @@ echo 8 > /sys/class/net/ens5f0/device/sriov_numvfs
 
 - Replace `ens5f0` above with the correct host IDPF interface to create 8 SR-IOV VFs on the host.
 
-### 4. Install TMUX tool on the localhost
+## IPU host test environment setup
+
+Before running the script, make sure `/etc/ssh/sshd_config` contains the line for root user.
+
+```bash
+PermitRootLogin yes
+```
+
+### Install TMUX tool on the localhost
 
 - The tool uses tmux sessions when running the option setup and option teardown.
 - Install TMUX on the host.
@@ -212,6 +124,38 @@ usage: tmux [-2CDlNuvV] [-c shell-command] [-f file] [-L socket-name]
             [-S socket-path] [-T features] [command [flags]]
 ```
 
+### Python environment setup for localhost
+
+#### Setup a python virtual environment
+
+```bash
+cd ipu-playbook/ovs_offload
+python -m venv --copies venv
+```
+
+#### Activate the venv and install requirements
+
+```bash
+# source venv/bin/activate
+(venv)# pip install -r requirements.txt
+(venv)# deactivate
+```
+
+- requirements.txt
+
+```text
+PyYAML
+```
+
+- Run the tool **ovs_offload_lnw.py** as a root user.
+- Use the python venv to run the tool
+
+```bash
+sudo -i
+cd ipu-playbook/ovs_offload
+source venv/bin/activate
+```
+
 ## Test Configuration
 
 - The tool uses the config.yaml file to program the rules for OVS Offload on the IPU adapter and configure the IDPF interfaces on the host server.
@@ -220,9 +164,11 @@ usage: tmux [-2CDlNuvV] [-c shell-command] [-f file] [-L socket-name]
 
 ### All-in-one setup configuration (config.yaml)
 
-- All-in-one configuration IPU adapter and a Link Partner NIC is connected to a single host server. Use Default ipu-playbook/ovs_offload/config.yaml
+- All-in-one configuration IPU adapter and a Link Partner NIC is connected to a single host server.
+- Use Default ipu-playbook/ovs_offload/config.yaml
 - Update the file: config.yaml for the specific test setup. Change the management IP, username, and password for IMC and ACC if they are different.
 - Update the test_params section as required for the setup with the correct host, IMC and ACC script paths.
+- Update the test_params[p4_artifacts] field with the absolute path to fxp-net_linux-networking P4 artifacts folder in intel-ipu-host-components package. This is used to update the P4 package on the IMC.
 - Update the idpf_interface, vf_interfaces in the config if the interface names are different.
 - Update lp_interfaces field with the correct Link Partner interface name if the Link Partner NIC is connected to the same host server.
 
@@ -260,6 +206,11 @@ test_params:
     host_path: 'ovs_offload_lnw_scripts'
     imc_path: '/mnt/imc/p4_test'
     acc_path:  '/opt/p4/p4sde/p4_test'
+    p4_artifacts: '/ipu/MEV-TS/10393/intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking'
+    pf_mac: '00:00:00:00:10:14'
+    vf_mac: '00:00:00:00:11:14'
+    cxp_num_pages: ''
+    comm_vports: ''
     # Update the correct IDPF Interface on the Host
     idpf_interface: 'ens5f0'
     # Update the list of Host IDPF Interfaces on the Host to Map to ACC Port representors
@@ -288,6 +239,7 @@ test_params:
 - Run ovs_offload_lnw.py in the 2 IPU host servers after copying the respective configs as above.
 - Update the file: config.yaml for the specific test setup. Change the management IP, username, and password for IMC and ACC if they are different.
 - Update the test_params section as required for the setup with the correct host, IMC and ACC script paths.
+- Update the test_params[p4_artifacts] field with the absolute path to fxp-net_linux-networking P4 artifacts folder in intel-ipu-host-components package. This is used to update the P4 package on the IMC.
 - Update the idpf_interface, vf_interfaces name in the config if the interface names are different.
 - Note that the lp_interfaces and lp_interface_ip fields below is empty as we are running in back-to-back mode and there is no Link Partner NIC connected to the same server.
 
@@ -328,6 +280,11 @@ test_params:
     host_path: 'ovs_offload_lnw_scripts'
     imc_path: '/mnt/imc/p4_test'
     acc_path:  '/opt/p4/p4sde/p4_test'
+    p4_artifacts: '/ipu/MEV-TS/10393/intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking'
+    pf_mac: '00:00:00:00:10:14'
+    vf_mac: '00:00:00:00:11:14'
+    cxp_num_pages: ''
+    comm_vports: ''
     # Update the correct IDPF Interface on the Host
     idpf_interface: 'ens2f0'
     # Update the list of Host IDPF Interfaces on the Host to Map to ACC Port representors
@@ -383,6 +340,11 @@ test_params:
     host_path: 'ovs_offload_lnw_scripts'
     imc_path: '/mnt/imc/p4_test'
     acc_path:  '/opt/p4/p4sde/p4_test'
+    p4_artifacts: '/ipu/MEV-TS/10393/intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking'
+    pf_mac: '00:00:00:00:20:14'
+    vf_mac: '00:00:00:00:21:14'
+    cxp_num_pages: ''
+    comm_vports: ''
     # Update the correct IDPF Interface on the Host
     idpf_interface: 'ens2f0'
     # Update the list of Host IDPF Interfaces on the Host to Map to ACC Port representors
@@ -401,38 +363,6 @@ test_params:
     local_br_tun_ip: ['1.1.1.2','2.1.1.2']
 ```
 
-## Python environment setup for localhost
-
-### Setup a python virtual environment
-
-```bash
-cd ipu-playbook/ovs_offload
-python -m venv --copies venv
-```
-
-#### Activate the venv and install requirements
-
-```bash
-# source venv/bin/activate
-(venv)# pip install -r requirements.txt
-(venv)# deactivate
-```
-
-- requirements.txt
-
-```text
-PyYAML
-```
-
-- Run the tool **ovs_offload_lnw.py** as a root user.
-- Use the python venv to run the tool
-
-```bash
-sudo -i
-cd ipu-playbook/ovs_offload
-source venv/bin/activate
-```
-
 ## OVS Offload tool supported options
 
 ### ovs_offload_lnw.py : (P4:fxp-net_linux-networking.p4, IPU SDK Release >= 1.7.0)
@@ -442,63 +372,46 @@ source venv/bin/activate
 
 ```bash
 python ovs_offload_lnw.py
-usage: ovs_offload_lnw.py [-h] {create_script,copy_script,setup,teardown} ...
+usage: ovs_offload_lnw.py [-h] {load_package,setup,teardown,create_script,copy_script} ...
 
 Configure Linux Networking with OVS offload with IPv4 transport or VXLAN tunnel
 
-positional arguments: {create_script,copy_script,setup,teardown}
-    create_script       Generate configuration scripts in localhost
-    copy_script         Generate and copy configuration scripts to IMC and ACC
-    setup               Setup OVS offload with IPv4 transport or VXLAN tunnel, prerequisite: run copy_script option once for scripts to be available
-                        in ACC
-    teardown            Teardown and cleanup the OVS offload configuration, prerequisite: run copy_script option once for scripts to be available in
-                        ACC
+positional arguments:
+  {load_package,setup,teardown,create_script,copy_script}
+    load_package        Update the P4 package on the IMC and reboot IMC
+    setup               Setup OVS offload with IPv4 transport or VXLAN tunnel, prerequisite: Update the P4 package to fxp-net_linux-
+                        networking with load_package option
+    teardown            Teardown and cleanup the OVS offload configuration
+    create_script       Debug Only: Generate configuration scripts in localhost
+    copy_script         Debug Only: Copy configuration scripts to IMC and ACC for manual deployment
 
 optional arguments:
   -h, --help            show this help message and exit
 ```
 
-### 1. create_script (optional step used for debug)
+### 1. load_package
 
-- This option will create the configuration shell scripts in the localhost script directory
-- The localhost script directory path is specified in **host_path** field in **config.yaml**
-- Default localhost script directory path is **ipu-playbook/ovs_offload/ovs_offload_lnw_scripts**
-
-```bash
-python ovs_offload_lnw.py create_script
-```
-
-The helper shell scripts will be created as shown below.
+- load_package linux_networking: Update the P4 package on the IMC with fxp-net_linux-networking.pkg, copy the artifacts to IMC and ACC, reboot the IMC for the config changes to take effect.
+- load_package default: Revert to the default P4 package and node policy with IMC reboot
+- Update the test_params[p4_artifacts] field with the absolute path to fxp-net_linux-networking P4 artifacts folder in intel-ipu-host-components package. This is used to update the P4 package on the IMC.
 
 ```bash
-ls ipu-playbook/ovs_offload/ovs_offload_lnw_scripts
-total 60K
--rwxr-xr-x. 1 admin12 admin12 1.6K Aug 28 13:37 es2k_skip_p4.conf
--rwxr-xr-x. 1 admin12 admin12  375 Aug 28 13:37 1_host_idpf.sh
--rwxr-xr-x. 1 admin12 admin12 1.3K Aug 28 13:37 2_acc_infrap4d.sh
--rwxr-xr-x. 1 admin12 admin12  12K Aug 28 13:37 3_acc_p4rt.sh
--rwxr-xr-x. 1 admin12 admin12 8.4K Aug 28 13:37 acc_p4rt_delete.sh
--rwxr-xr-x. 1 admin12 admin12 2.0K Aug 28 13:37 4_acc_p4rt_dump.sh
--rwxr-xr-x. 1 admin12 admin12 1.3K Aug 28 13:37 5_acc_setup_ovs.sh
--rwxr-xr-x. 1 admin12 admin12 2.1K Aug 28 13:37 6_acc_ovs_bridge.sh
--rwxr-xr-x. 1 admin12 admin12 6.1K Aug 28 13:37 acc_ovs_vxlan.sh
--rwxr-xr-x. 1 admin12 admin12 2.8K Aug 28 13:37 7_host_vm.sh
+python ovs_offload_lnw.py load_package
+usage: ovs_offload_lnw.py load_package [-h] {linux_networking,default} ...
+
+positional arguments:
+  {linux_networking,default}
+    linux_networking    load p4 package fxp-net_linux-networking.pkg and perform IMC reboot
+    default             Revert to the default P4 package e2100-default-<version>.pkg and perform IMC reboot
+
+optional arguments:
+  -h, --help            show this help message and exit
 ```
 
-### 2. copy_script (execute once to copy the scripts to ACC before running setup or teardown)
-
-- This option will create the configuration shell scripts in the localhost script directory (the path can be changed in **host_path:** in **config.yaml**) default path is **ovs_offload/ovs_offload_lnw_scripts**
-- It copies the scripts from localhost to IPU IMC (the path can be changed in **imc_path:** in **config.yaml**) default path is `/mnt/imc/p4_test`)
-- It copies the scripts from the IMC to the ACC (the path can be changed in **acc_path:** in **config.yaml**) default path is `/opt/p4/p4sde/p4_test`
-
-```bash
-python ovs_offload_lnw.py copy_script
-```
-
-### 3. setup
+### 2. setup
 
 - Configure OVS offload on ACC and setup localhost IDPF VFs with VM namespaces
-- Prerequisite: run copy_script option once for scripts to be available in ACC
+- Prerequisite: run **python ovs_offload_lnw.py load_package linux_networking** option once to update the p4 package.
 
 ```bash
 python ovs_offload_lnw.py setup
@@ -538,7 +451,7 @@ Detach from inside a tmux session.
 ctrl+b d
 ```
 
-### 4. teardown
+### 3. teardown
 
 ```bash
 python ovs_offload_lnw.py teardown
@@ -550,29 +463,193 @@ python ovs_offload_lnw.py teardown
 - Configure TMUX session - test2_p4rt delete the p4rt-ctl rules and delete the OVS bridges
 - Configure TMUX session - test1_infrap4d, login to ACC and stop infrap4d,
 
+### 4. create_script (optional step used for debug)
+
+- This option will create the configuration shell scripts in the localhost script directory
+- The localhost script directory path is specified in **host_path** field in **config.yaml**
+- Default localhost script directory path is **ipu-playbook/ovs_offload/ovs_offload_lnw_scripts**
+
+```bash
+python ovs_offload_lnw.py create_script
+```
+
+The helper shell scripts will be created as shown below.
+
+```bash
+ls ipu-playbook/ovs_offload/ovs_offload_lnw_scripts
+total 60K
+-rwxr-xr-x. 1 admin12 admin12 1.6K Aug 28 13:37 es2k_skip_p4.conf
+-rwxr-xr-x. 1 admin12 admin12  375 Aug 28 13:37 1_host_idpf.sh
+-rwxr-xr-x. 1 admin12 admin12 1.3K Aug 28 13:37 2_acc_infrap4d.sh
+-rwxr-xr-x. 1 admin12 admin12  12K Aug 28 13:37 3_acc_p4rt.sh
+-rwxr-xr-x. 1 admin12 admin12 8.4K Aug 28 13:37 acc_p4rt_delete.sh
+-rwxr-xr-x. 1 admin12 admin12 2.0K Aug 28 13:37 4_acc_p4rt_dump.sh
+-rwxr-xr-x. 1 admin12 admin12 1.3K Aug 28 13:37 5_acc_setup_ovs.sh
+-rwxr-xr-x. 1 admin12 admin12 2.1K Aug 28 13:37 6_acc_ovs_bridge.sh
+-rwxr-xr-x. 1 admin12 admin12 6.1K Aug 28 13:37 acc_ovs_vxlan.sh
+-rwxr-xr-x. 1 admin12 admin12 2.8K Aug 28 13:37 7_host_vm.sh
+```
+
+### 5. copy_script (optional step used for debug)
+
+- This option will create the configuration shell scripts in the localhost script directory (the path can be changed in **host_path:** in **config.yaml**) default path is **ovs_offload/ovs_offload_lnw_scripts**
+- It copies the scripts from localhost to IPU IMC (the path can be changed in **imc_path:** in **config.yaml**) default path is `/mnt/imc/p4_test`)
+- It copies the scripts from the IMC to the ACC (the path can be changed in **acc_path:** in **config.yaml**) default path is `/opt/p4/p4sde/p4_test`
+
+```bash
+python ovs_offload_lnw.py copy_script
+```
+
 ## OVS Offload setup with automation tool ovs_offload_lnw.py
 
-### OVS Offload Setup IPv4 transport
+### STEP 1: Update the P4 package to fxp-net_linux-networking.pkg
+
+- Run the command below once in the IPU localhost server to update the P4 package and setup the node policy changes.
+- This will reboot the IMC and ACC for the changes to take effect.
+
+```bash
+python ovs_offload_lnw.py load_package linux_networking
+```
+
+### STEP 2: OVS Offload Setup
+
+#### IPv4 transport
 
 - Run the commands below in the IPU localhost server to configure OVS Offload on the IPU ACC with IPv4 transport and configure the Host IDPF interfaces and VM namespaces.
 
 ```bash
-python ovs_offload_lnw.py copy_script
 python ovs_offload_lnw.py setup transport
 ```
 
-### OVS Offload Setup VXLAN tunnel
+#### VXLAN tunnel
 
 - Run the commands below in the IPU localhost server to configure OVS Offload on the IPU ACC with VXLAN tunnel and configure the Host IDPF interfaces and VM namespaces.
 
 ```bash
-python ovs_offload_lnw.py copy_script
 python ovs_offload_lnw.py setup tunnel
 ```
 
-## OVS offload setup manual execution
+### STEP 3: Revert to Default Configuration
 
-### 1. IPU P4 Artifacts on ACC
+#### OVS Offload teardown with automation tool ovs_offload_lnw.py
+
+- Run the tool with option **teardown**
+
+```bash
+python ovs_offload_lnw.py teardown
+```
+
+#### Revert to Default P4 package
+
+- Run the command below once in the IPU localhost server to update the P4 package and setup the node policy changes.
+- This will reboot the IMC and ACC for the changes to take effect.
+
+```bash
+python ovs_offload_lnw.py load_package default
+```
+
+## OVS offload setup manual execution flow
+
+### 1. IMC setup to manually load the P4 package
+
+- Load the P4 package `fxp-net_linux-networking.pkg` on the IMC. Refer Section `IPU P4 Quickstart Guide` in the Intel® Infrastructure Processing Unit Software User Guide
+- Login to the IPU IMC from the localhost, default IMC IP is `100.0.0.100`
+
+```bash
+ssh root@100.0.0.100
+```
+
+- Copy the P4 package `fxp-net_linux-networking.pkg` to the IMC /work/scripts/ directory.
+- Update the IMC script `/work/scripts/load_custom_pkg.sh` as shown in the example below.
+- Reboot the IMC. On IMC bootup, the P4 package and node policy configuration will be updated as specified in `/work/scripts/load_custom_pkg.sh`.
+
+#### Host 1 IPU IMC
+
+```bash
+[root@ipu-imc ~]# cat /work/scripts/load_custom_pkg.sh
+#!/bin/sh
+CP_INIT_CFG=/etc/dpcp/cfg/cp_init.cfg
+echo "Checking for custom package..."
+sed -i 's/pf_mac_address = "00:00:00:00:03:14";/pf_mac_address = "00:00:00:00:10:14";/g' $CP_INIT_CFG
+sed -i 's/vf_mac_address = "";/vf_mac_address = "00:00:00:00:11:14";/g' $CP_INIT_CFG
+if [ -e /work/scripts/fxp-net_linux-networking.pkg ]; then
+    echo "Custom package fxp-net_linux-networking.pkg found. Overriding default package"
+    cp  /work/scripts/fxp-net_linux-networking.pkg /etc/dpcp/package/
+    rm -rf /etc/dpcp/package/default_pkg.pkg
+    ln -s /etc/dpcp/package/fxp-net_linux-networking.pkg /etc/dpcp/package/default_pkg.pkg
+    sed -i 's/sem_num_pages = .*;/sem_num_pages = 28;/g' $CP_INIT_CFG
+    sed -i 's/lem_num_pages = .*;/lem_num_pages = 32;/g' $CP_INIT_CFG
+    sed -i 's/mod_num_pages = .*;/mod_num_pages = 2;/g' $CP_INIT_CFG
+    sed -i 's/acc_apf = 4;/acc_apf = 16;/g' $CP_INIT_CFG
+else
+    echo "No custom package found. Continuing with default package"
+fi
+```
+
+#### Host 2 IPU IMC
+
+- For two IPU host servers connected back-to-back we modify the default MAC addresses of the IPU interfaces.
+- The MAC suffix is updated for the pf_mac_address and vf_mac_address in the default node policy `/etc/dpcp/cfg/cp_init.cfg` in the Host 2 IPU IMC.
+- This ensures that there are no MAC address conflicts and the Host 2 IPU adapter interfaces use a different MAC address.
+
+```bash
+[root@ipu-imc ~]# cat /work/scripts/load_custom_pkg.sh
+#!/bin/sh
+CP_INIT_CFG=/etc/dpcp/cfg/cp_init.cfg
+echo "Checking for custom package..."
+sed -i 's/pf_mac_address = "00:00:00:00:03:14";/pf_mac_address = "00:00:00:00:20:14";/g' $CP_INIT_CFG
+sed -i 's/vf_mac_address = "";/vf_mac_address = "00:00:00:00:21:14";/g' $CP_INIT_CFG
+if [ -e /work/scripts/fxp-net_linux-networking.pkg ]; then
+    echo "Custom package fxp-net_linux-networking.pkg found. Overriding default package"
+    cp  /work/scripts/fxp-net_linux-networking.pkg /etc/dpcp/package/
+    rm -rf /etc/dpcp/package/default_pkg.pkg
+    ln -s /etc/dpcp/package/fxp-net_linux-networking.pkg /etc/dpcp/package/default_pkg.pkg
+    sed -i 's/sem_num_pages = .*;/sem_num_pages = 28;/g' $CP_INIT_CFG
+    sed -i 's/lem_num_pages = .*;/lem_num_pages = 32;/g' $CP_INIT_CFG
+    sed -i 's/mod_num_pages = .*;/mod_num_pages = 2;/g' $CP_INIT_CFG
+    sed -i 's/acc_apf = 4;/acc_apf = 16;/g' $CP_INIT_CFG
+else
+    echo "No custom package found. Continuing with default package"
+fi
+```
+
+- After IMC reboots, the above script will update the P4 package to `fxp-net_linux-networking.pkg` and the default node policy `/etc/dpcp/cfg/cp_init.cfg`.
+
+```bash
+[root@ipu-imc ~]# ls -lrt /etc/dpcp/package/
+total 2852
+-rw-r--r-- 1 root root 1532240 Jan  1 00:00 fxp-net_linux-networking.pkg
+lrwxr-xr-x 1 root root      46 Jan  1 00:00 default_pkg.pkg -> /etc/dpcp/package/fxp-net_linux-networking.pkg
+drwxr-xr-x 2 root root    4096 Sep 11  2024 runtime_files
+-rw-r--r-- 1 root root 1376720 Sep 11  2024 e2100-default-1.0.30.0.pkg
+```
+
+### 2. ACC setup for P4 binaries and artifacts
+
+- Extract /opt/p4.tar.gz in the ACC and copy P4 artifacts for fxp-net_linux-networking to the ACC
+- Login to the IPU IMC from the localhost, default IMC IP is `100.0.0.100`
+
+```bash
+ssh root@100.0.0.100
+```
+
+- IPU ACC is only reachable from the IMC console by default
+- Login to ACC from the IMC, default ACC IP is `192.168.0.2`
+
+```bash
+[root@ipu-imc ~]# ssh root@192.168.0.2
+```
+
+- Extract /opt/p4.tar.gz in the ACC, this package contains the binaries required to setup OVS offload in the ACC
+
+```bash
+[root@ipu-acc ~]# cd /opt/
+[root@ipu-acc opt]# tar -xvf p4.tar.gz
+```
+
+- Copy the P4 artifacts folder `intel-ipu-host-components/P4Tools/P4Programs/artifacts/fxp-net_linux-networking` from the same IPU SDK release version being tested to the IMC and then to the ACC location `/opt/p4/p4sde/p4_test/fxp-net_linux-networking`.
+
+### 3. IPU P4 Artifacts on ACC
 
 - The script uses the P4 binaries in the ACC at location `/opt/p4/p4-cp-nws`
 - The script requires the P4 artifacts to be available in the folder below in the ACC, make sure to copy the correct artifacts for the release. Refer prerequisites section for more information.
@@ -581,7 +658,7 @@ python ovs_offload_lnw.py setup tunnel
 [root@ipu-acc ~]# ls /opt/p4/p4sde/p4_test/fxp-net_linux-networking
 ```
 
-### 2. Infrap4d Configuration file
+### 4. Infrap4d Configuration file
 
 - Copy the infrap4d config in **/opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts/es2k_skip_p4.conf** to artifact folder **/opt/p4/p4sde/p4_test/fxp-net_linux-networking** in the ACC
 
@@ -589,7 +666,7 @@ python ovs_offload_lnw.py setup tunnel
 [root@ipu-acc ~]# cp /opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts/es2k_skip_p4.conf /opt/p4/p4sde/p4_test/fxp-net_linux-networking/
 ```
 
-### 3. Start Infrap4d
+### 5. Start Infrap4d
 
 - Use the shell scripts in /opt/p4/p4sde/p4_test/ovs_offload_lnw_scripts in the ACC to set up infrap4d, p4rt and OVS bridge:
 - ACC Terminal 1 : Set up environment and start Infrap4d
@@ -623,7 +700,7 @@ ipu_p4d: server started - listening on port 9999
 E20240414 00:03:48.469659 293611 es2k_hal.cc:276] [secure mode] Stratum external-facing services are listening to 0.0.0.0:9339, 0.0.0.0:9559, localhost:9559...
 ```
 
-### 4. Configure P4 pipeline and add the ACC Port Representor rules
+### 6. Configure P4 pipeline and add the ACC Port Representor rules
 
 - ACC Terminal 2 : Configure pipeline and set up runtime rules.
 
@@ -643,7 +720,7 @@ E20240414 00:03:48.469659 293611 es2k_hal.cc:276] [secure mode] Stratum external
 [root@ipu-acc ovs_offload_lnw_scripts]# ./4_acc_p4rt_dump.sh
 ```
 
-### 5. Set up ACC environment for OVS
+### 7. Set up ACC environment for OVS
 
 - ACC Terminal 2 : Set up the OVS Environment.
 
@@ -654,7 +731,7 @@ E20240414 00:03:48.469659 293611 es2k_hal.cc:276] [secure mode] Stratum external
 [root@ipu-acc ovs_offload_lnw_scripts]# ./5_acc_setup_ovs.sh
 ```
 
-### 6. Set up OVS bridge configuration
+### 8. Set up OVS bridge configuration
 
 #### OVS bridges for IPv4 transport
 
@@ -684,7 +761,7 @@ E20240414 00:03:48.469659 293611 es2k_hal.cc:276] [secure mode] Stratum external
 systemctl stop firewalld
 ```
 
-### 7. Set up VM namespaces on the IPU Host
+### 9. Set up VM namespaces on the IPU Host
 
 - IPU HOST Terminal 1 : Configure the VMs on the IPU Host the script below uses **ip netns**
 
@@ -693,7 +770,7 @@ systemctl stop firewalld
 [root@host]# ./7_host_vm.sh
 ```
 
-### 8. All-in-one setup link partner configuration
+### 10. All-in-one setup link partner configuration
 
 #### All-in-one setup IPv4 transport mode
 
@@ -797,7 +874,7 @@ PING 10.0.0.10 (10.0.0.10) 56(84) bytes of data.
 rtt min/avg/max/mdev = 0.040/0.048/0.058/0.007 ms
 ```
 
-### OVS Offload configuration with VXLAN tunnel on two IPU host servers connected back-to-back
+## OVS Offload configuration with VXLAN tunnel on two IPU host servers connected back-to-back
 
 - Ideally OVS Offload with VXLAN can be run with 2 IPU Peer Setups connected back to back.
 - Run python script **ovs_offload_lnw.py copy_script** as a root user on the 2 peer IPU Hosts to generate the configuration.
@@ -805,7 +882,7 @@ rtt min/avg/max/mdev = 0.040/0.048/0.058/0.007 ms
 - Host1 IPU Port1 <-----> Host2 IPU Port1
 - For IPU Host 1 server copy config_host1.yaml to config.yaml.
 
-#### Update the config.yaml for OVS VXLAN for IPU 1 Setup
+### Update the config.yaml for OVS VXLAN for IPU 1 Setup
 
 - For IPU Host 1 server copy config_host1.yaml to config.yaml.
 
@@ -824,7 +901,7 @@ test_params:
     remote_br_tun_ip: ['1.1.1.2','2.1.1.2']
 ```
 
-#### Update config.yaml for OVS VXLAN Config for IPU 2 Setup
+### Update config.yaml for OVS VXLAN Config for IPU 2 Setup
 
 - For IPU Host 2 server copy config_host2.yaml to config.yaml.
 
@@ -846,14 +923,6 @@ test_params:
 - Follow the instructions provided in previous sections to setup infrap4d, p4rt-ctl and OVS on both the IPU Peer setups.
 - VXLAN tunnels are setup between IPU1 VM0 to IPU2 VM0, IPU1 VM1 to IPU2 VM1, ..., IPU1 VM7 to IPU2 VM7
 - Ping from VM0 on IPU 1 Host to VM0 on IPU 2 Host should be successful. similarly ping between other VMs like VM1 IPU1 to VM1 IPU2 and so on
-
-## OVS Offload teardown with automation tool ovs_offload_lnw.py
-
-- Run the tool with option **teardown**
-
-```bash
-> python ovs_offload_lnw.py teardown
-```
 
 ## OVS Offload teardown manual execution
 
@@ -936,8 +1005,6 @@ root       24663  0.0  0.0   3620  1732 pts/1    S+   04:24   0:00 grep --color=
 ```
 
 ## Appendix
-
-- For IPU SDK version < 1.6.1 use below scripts
 
 ### ovs_offload_lnw_v3.py: (P4:fxp-net_linux-networking_v3.p4, IPU SDK Release 1.6.0, 1.6.1)
 
