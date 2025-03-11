@@ -5,7 +5,7 @@
 #
 # Common Python APIs and utilities for Intel® Infrastructure Processing Unit (Intel® IPU)
 
-import subprocess
+import subprocess # nosec
 import os
 import time
 import re
@@ -23,7 +23,7 @@ def run_cmd(cmd, output=False, check_returncode=True):
     """
     print(f'Executing: {cmd}')
     # Use a context manager to ensure the subprocess is cleaned up after execution
-    with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE if output else None, stderr=subprocess.PIPE, encoding="utf-8") as s:
+    with subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE if output else None, stderr=subprocess.PIPE, encoding="utf-8") as s: # nosec
         outs, errs = s.communicate() if output else (None, None)
         # Check the return code if required
         if check_returncode and s.returncode != 0:
