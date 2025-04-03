@@ -65,7 +65,11 @@ total 6.2M
 
 - The IPU SDK tarball `intel-ipu-sdk-source-code-<version>.<build_number>.tar.gz` contains the scripts for performance tuning. Downlopad this tarball from the RDC and extract it. Once extracted the contents will be in Intel_IPU_SDK-<build_number> directory.
 
-### Host IDPF driver and interface setup
+### Enabling virtualization
+
+Depends on platform you must make sure the Vt-d, Intel Virtualization Technology, and IOMMU (if the option is present) should be enabled in BIOS setting. If you need SR-IOV for VF interface, enable SR-IOV in BIOS setting. After changing the BIOS setting, you must restart the host.
+
+### Host IDPF driver
 
 - Extract The host package `intel-ipu-host-components-<version>.<build number>.tar.gz`, this contains the IDPF source and pre-built RPMs for RHEL and Rocky Linux.
 - If using some other flavor of Linux, run the following commands as a root user to build the IDPF driver from source
@@ -82,19 +86,6 @@ make
 make install
 ```
 
-- Load the IDPF Driver and create 8 SR-IOV VFs and verify the interfaces come up
-
-```bash
-sudo -i
-rmmod idpf
-modprobe idpf
-lsmod | grep idpf
-modinfo idpf
-echo 8 > /sys/class/net/ens5f0/device/sriov_numvfs
-```
-
-- Replace `ens5f0` above with the correct host IDPF interface to create 8 SR-IOV VFs on the host.
-
 ## IPU host test environment setup
 
 Before running the script, make sure `/etc/ssh/sshd_config` contains the line for root user.
@@ -102,6 +93,7 @@ Before running the script, make sure `/etc/ssh/sshd_config` contains the line fo
 ```bash
 PermitRootLogin yes
 ```
+
 ### Install TMUX tool on the localhost
 
 - The tool uses tmux sessions when running the option setup and option teardown.
@@ -168,7 +160,6 @@ source venv/bin/activate
 - Update the test_params section as required for the setup with the correct host, IMC and ACC script paths.
 - Update the test_params[p4_artifacts] field with the absolute path to fxp-net_linux-networking P4 artifacts folder in intel-ipu-host-components package. This is used to update the P4 package on the IMC.
 - Update the test_params [ipu_sdk_path] field with the absolute path of Intel_IPU_SDK-<build_number> which will be obtained by untarring intel-ipu-sdk-source-code-<version>.<build_number>.tar.gz. This is used for performance tuning.
-- Update the idpf_interface, vf_interfaces, local_vxlan_tunnel_mac and remote_vxlan_mac name in the config if the interface names are different.
 
 ### IPU Host 1
 
@@ -358,6 +349,10 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
 ```
+
+### 2. Update config.yaml 
+
+Update the idpf_interface, vf_interfaces, local_vxlan_tunnel_mac and remote_vxlan_mac name in the config.yaml of both hosts if the interface names are different.
 
 ### 2. setup
 
