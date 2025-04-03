@@ -30,7 +30,7 @@
 - teardown : Cleanup the OVS bridge and P4 runtime configuration
 - load_package default: Revert to default P4 package and node policy with IPU reboot.
 
-## Supported Topologies
+## Supported Topology
 
 ### Back-to-back configuration
 
