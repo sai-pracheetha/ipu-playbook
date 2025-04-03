@@ -1,4 +1,4 @@
-# Linux Networming with IPsec Acceleration
+# Linux Networking with IPsec Acceleration
 
 ## Introduction
 
@@ -63,7 +63,7 @@ total 6.2M
 
 ### IPU SDK tarball for performance tuning
 
-- The IPU SDK tarball `intel-ipu-sdk-source-code-<version>.<build_number>.tar.gz` contains the scripts for performance tuning. Downlopad this tarball from the RDC and extract it. Once extracted the contents will be in Intel_IPU_SDK-<build_number> directory.
+The IPU SDK tarball `intel-ipu-sdk-source-code-<version>.<build_number>.tar.gz` contains the scripts for performance tuning. Downlopad this tarball from the RDC and extract it. Once extracted the contents will be in Intel_IPU_SDK-<build_number> directory.
 
 ### Enabling virtualization
 
@@ -85,6 +85,19 @@ cd idpf-<version>
 make
 make install
 ```
+
+- Load the IDPF Driver and create 8 SR-IOV VFs and verify the interfaces come up
+
+```bash
+sudo -i
+rmmod idpf
+modprobe idpf
+lsmod | grep idpf
+modinfo idpf
+echo 8 > /sys/class/net/ens5f0/device/sriov_numvfs
+```
+
+- Replace `ens5f0` above with the correct host IDPF interface to create 8 SR-IOV VFs on the host.
 
 ## IPU host test environment setup
 
@@ -160,6 +173,7 @@ source venv/bin/activate
 - Update the test_params section as required for the setup with the correct host, IMC and ACC script paths.
 - Update the test_params[p4_artifacts] field with the absolute path to fxp-net_linux-networking P4 artifacts folder in intel-ipu-host-components package. This is used to update the P4 package on the IMC.
 - Update the test_params [ipu_sdk_path] field with the absolute path of Intel_IPU_SDK-<build_number> which will be obtained by untarring intel-ipu-sdk-source-code-<version>.<build_number>.tar.gz. This is used for performance tuning.
+- Update the idpf_interface, vf_interfaces name in the config.yaml of both hosts if the interface names are different.
 
 ### IPU Host 1
 
@@ -350,11 +364,8 @@ optional arguments:
   -h, --help            show this help message and exit
 ```
 
-### 2. Update config.yaml 
 
-Update the idpf_interface, vf_interfaces, local_vxlan_tunnel_mac and remote_vxlan_mac name in the config.yaml of both hosts if the interface names are different.
-
-### 3. setup
+### 2. setup
 
 - Configure IPsec accel on ACC and localhost IDPF VFs.
 - Prerequisite: run **python ipsec_accel.py load_package linux_networking** option once to update the p4 package.
@@ -365,7 +376,7 @@ python ipsec_accel.py setup
 
 - This will setup OVS offload on the ACC and configure the VFs on localhost.
 
-### 4. ipsec_transport
+### 3. ipsec_transport
 
 ```bash
 python ipsec_accel.py ipsec_transport
@@ -375,7 +386,7 @@ python ipsec_accel.py ipsec_transport
 - Prerequisite: run setup.
 - Configures TMUX session - test_host_ipsec
 
-### 5. ipsec_tunnel
+### 4. ipsec_tunnel
 
 ```bash
 python ipsec_accel.py ipsec_tunnel
@@ -384,13 +395,8 @@ python ipsec_accel.py ipsec_tunnel
 - This will setup tunnel mode.
 - Prerequisite: run setup.
 - Configures TMUX session - test_host_ipsec
-- Attach to this TMUX session : 'tmux a -t test_host_ipsec'
-- Execute './ipsec start' on both ends to establish IPsec Tunnel mode.
-- Check for SADB counters in IMC : 'cli_client -qsS' and encrypted/decrypted counters increment.
-- Execute './ipsec stop' to stop the IPsec session.
-- To come out of the tmux session execute ctrl+b d 
 
-### 6. ipsec_performance
+### 5. ipsec_performance
 
 ```bash
 python ipsec_accel.py ipsec_performance
@@ -399,15 +405,15 @@ python ipsec_accel.py ipsec_performance
 - This will tune for performance testing.
 - Prerequisite: run setup, ipsec_transport or ipsec_tunnel.
 
-### 7. teardown
+### 6. teardown
 
 ```bash
-> python ipsec_accel.py teardown
+python ipsec_accel.py teardown
 ```
 
 - This will tear down the complete OVS setup.
 
-### 8. create_script (optional step used for debug)
+### 7. create_script (optional step used for debug)
 
 - This option will create the configuration shell scripts in the localhost script directory
 - The localhost script directory path is specified in **host_path** field in **config.yaml**
@@ -447,7 +453,7 @@ total 100
 -rwxr-xr-x. 1 root root  460 Apr  1 12:26 sync_host_acc_date.sh
 ```
 
-### 9. copy_script (optional step used for debug)
+### 8. copy_script (optional step used for debug)
 
 - This option will create the configuration shell scripts in the localhost script directory (the path can be changed in **host_path:** in **config.yaml**) default path is *ipsec_accel/ipsec_accel_scripts**
 - It copies the scripts from localhost to IPU IMC (the path can be changed in **imc_path:** in **config.yaml**) default path is `/mnt/imc/p4_test`)
@@ -476,21 +482,81 @@ python ipsec_accel.py load_package linux_networking
 python ipsec_accel.py setup
 ```
 
-### STEP 3: IPsec Transport
+### STEP 3. Update config.yaml 
 
-- Run the commands below in the IPU localhost server to configure IPsec in transport mode.
+Update the local_vxlan_tunnel_mac and remote_vxlan_mac name in the config.yaml of both hosts.
+
+
+### STEP 4: IPsec Transport
+
+- Run the command below in the IPU localhost server to configure IPsec in transport mode.
 
 ```bash
-python ipsec_accel.py setup
+python ipsec_accel.py ipsec_transport
 ```
-- Attach to this TMUX session : tmux a -t test_host_ipsec
-- Execute './ipsec start' on both ends to establish IPsec Transport mode.
-- Check for SADB counters in IMC : 'cli_client -qsS' and encrypted/decrypted counters increment.
-- Execute './ipsec stop' to stop the IPsec session.
+- Attach to the TMUX session 
+
+```bash
+tmux a -t test_host_ipsec
+```
+
+- Execute './ipsec start' on both hosts tmux session to establish IPsec Transport mode.
+- Check for IPsec session establishment
+
+```bash
+host# ./ipsec status
+
+[root@Aurora sbin]# ./ipsec status
+Security Associations (1 up, 0 connecting):
+    sts-base[1]: ESTABLISHED 3 minutes ago, 192.168.1.101[192.168.1.101]...192.168.1.102[192.168.1.102]
+    sts-base{1}:  INSTALLED, TRANSPORT, reqid 1, ESP SPIs: 4f000001_i 93000001_o
+    sts-base{1}:   192.168.1.101/32[tcp] === 192.168.1.102/32[tcp]
+```
+
+- Send traffic and Check for SADB counters in IMC : 'cli_client -qsS' and encrypted/decrypted counters increment.
+
+```bash
+Host 1
+
+host1# ssh admin12@192.168.1.102
+
+[root@Aurora sbin]# ssh admin12@192.168.1.102
+admin12@192.168.1.102's password:
+Activate the web console with: systemctl enable --now cockpit.socket
+
+Last login: Tue Oct 29 05:54:02 2024 from 192.168.1.101
+[admin12@Hestia ~]$
+
+
+IMC
+
+imc : cli_client -qsS
+
+
+[root@ipu-imc ~]# cli_client -qsS
+No IP address specified, defaulting to localhost
+ipsec rx dec packets: 16 bytes: 3221
+ipsec rx replay errors: 0
+ipsec rx auth failures: 0
+ipsec rx misc errors: 0
+ipsec rx bad pkts: 0
+ipsec tx enc packets: 18 bytes: 2825
+ipsec tx misc errors: 0
+ipsec tx bad pkts: 0
+cisp rx dec packets: 0 bytes: 0
+cisp rx auth failures: 0
+cisp rx misc errors: 0
+cisp rx bad pkts: 0
+cisp tx enc packets: 0 bytes: 0
+cisp tx misc errors: 0
+cisp tx bad pkts: 0
+```
+
+- Later after testing traffic and performance execute './ipsec stop' to stop the IPsec session.
 - To come out of the tmux session execute ctrl+b d  
 
 
-### STEP 4: IPsec Performance
+### STEP 5: IPsec Performance
 
 - Run the commands below in the IPU localhost server to tune for performance.
 
@@ -499,13 +565,20 @@ python ipsec_accel.py ipsec_performance
 ```
 
 - Test with version iperf3.17 or later.
-- Make sure IPsec session is established.
+- Make sure IPsec session is established. (./ipsec start in tmux session)
 - Example command where one host acts as a server and other as a client
-- Server Host 2: iperf3 -s -B 192.168.1.102 -i 1 -p 6000
-- Client Host 1: iperf3 -t 30 -c 192.168.1.102 -B 192.168.1.101  -i 1  -P 8 -p 6000
 
+```bash
+Server Host 2
+iperf3 -s -B 192.168.1.102 -i 1 -p 6000
+```
 
-### STEP 4: IPsec Tunnel
+```bash
+Client Host 1
+iperf3 -t 30 -c 192.168.1.102 -B 192.168.1.101  -i 1  -P 8 -p 6000
+```
+
+### STEP 6: IPsec Tunnel
 
 - Run the commands below in the IPU localhost server to configure IPsec in tunnel mode.
 
@@ -513,19 +586,80 @@ python ipsec_accel.py ipsec_performance
 python ipsec_accel.py ipsec_tunnel
 ```
 
-- Attach to this TMUX session : tmux a -t test_host_ipsec
+- Attach to the TMUX session 
+
+```bash
+tmux a -t test_host_ipsec
+```
+
 - Execute './ipsec start' on both ends to establish IPsec Transport mode.
-- Check for SADB counters in IMC : 'cli_client -qsS' and encrypted/decrypted counters increment.
-- Execute './ipsec stop' to stop the IPsec session.
-- To come out of the tmux session execute ctrl+b d  
+- Check for IPsec establishment
+
+```bash
+host# ./ipsec status
+
+[root@Aurora sbin]# ./ipsec status
+Security Associations (1 up, 0 connecting):
+    sts-base[1]: ESTABLISHED 37 seconds ago, 192.168.1.101[192.168.1.101]...192.168.1.102[192.168.1.102]
+    sts-base{1}:  INSTALLED, TUNNEL, reqid 1, ESP SPIs: 6d000001_i 5a000001_o
+    sts-base{1}:   11.0.0.1/32[tcp] === 11.0.0.2/32[tcp]
+(venv) [root@Aurora sbin]#
+```
+
+-Send traffic and check for SADB counters in IMC : 'cli_client -qsS' and encrypted/decrypted counters increment.
+
+```bash
+Host
+
+(venv) [root@Aurora sbin]# ssh admin12@11.0.0.2
+admin12@11.0.0.2's password:
+Activate the web console with: systemctl enable --now cockpit.socket
+
+Last login: Tue Oct 29 06:22:23 2024 from 11.0.0.1
+[admin12@Hestia ~]$
+
+IMC
+
+[root@ipu-imc ~]# cli_client -qsS
+No IP address specified, defaulting to localhost
+ipsec rx dec packets: 80 bytes: 12759
+ipsec rx replay errors: 0
+ipsec rx auth failures: 0
+ipsec rx misc errors: 0
+ipsec rx bad pkts: 0
+ipsec tx enc packets: 125 bytes: 12867
+ipsec tx misc errors: 2
+ipsec tx bad pkts: 0
+cisp rx dec packets: 0 bytes: 0
+cisp rx auth failures: 0
+cisp rx misc errors: 0
+cisp rx bad pkts: 0
+cisp tx enc packets: 0 bytes: 0
+cisp tx misc errors: 0
+cisp tx bad pkts: 0
+
+server finished responding =======================
+```
+
 - If ipsec_performance is already executed, no need to execute it again as tuning parameters are already set.
 - Test with version iperf3.17 or later.
-- Example command where one host acts as a server and other as a client
-- Server Host 2: iperf3 -s -B 11.0.0.2 -i 1 -p 6000
-- Client Host 1: iperf3 -t 30 -c 11.0.0.2 -B 11.0.0.1  -i 1  -P 8 -p 6000
+- Example command where one host acts as a server and other as a client.
+
+  ```bash
+Server Host 2
+iperf3 -s -B 11.0.0.2 -i 1 -p 6000
+```
+
+```bash
+Client Host 1
+iperf3 -t 30 -c 11.0.0.2 -B 11.0.0.1  -i 1  -P 8 -p 6000
+```
+
+- Execute './ipsec stop' to stop the IPsec session.
+- To come out of the tmux session execute ctrl+b d  
 
 
-### STEP 5: Revert to Default Configuration
+### STEP 7: Revert to Default Configuration
 
 #### IPsec acceleration teardown with automation tool ipsec_accel.py
 
@@ -551,8 +685,8 @@ python ipsec_accel.py load_package default
 Execute create_script and copy_script for scripts to be generated and avaialbe in host and ACC.
 
 ```bash
-ipsec_accel.py create_script
-ipsec_accel.py copy_script
+python ipsec_accel.py create_script
+python ipsec_accel.py copy_script
 ```
 
 
@@ -653,7 +787,7 @@ echo 8 > /sys/class/net/ens5f0/device/sriov_numvfs
 
 ### 3. IPU P4 Artifacts on ACC
 
-- The scripts expects the P4 artifacts to be available in the folder below in the ACC. Make sure to copy the correct artifacts for the release.
+- The scripts expects the P4 artifacts to be available in the directory  as mentioned in config.yaml under test_params [acc_path] in the ACC. By default it is /opt/. Make sure the artifacts corresponds to the release that runs on the IPU. 
 
 ```bash
 [root@ipu-acc ~]# ls /opt/fxp-net_linux-networking
