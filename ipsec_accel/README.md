@@ -354,7 +354,7 @@ optional arguments:
 
 Update the idpf_interface, vf_interfaces, local_vxlan_tunnel_mac and remote_vxlan_mac name in the config.yaml of both hosts if the interface names are different.
 
-### 2. setup
+### 3. setup
 
 - Configure IPsec accel on ACC and localhost IDPF VFs.
 - Prerequisite: run **python ipsec_accel.py load_package linux_networking** option once to update the p4 package.
@@ -365,7 +365,7 @@ python ipsec_accel.py setup
 
 - This will setup OVS offload on the ACC and configure the VFs on localhost.
 
-### 3. ipsec_transport
+### 4. ipsec_transport
 
 ```bash
 python ipsec_accel.py ipsec_transport
@@ -375,7 +375,7 @@ python ipsec_accel.py ipsec_transport
 - Prerequisite: run setup.
 - Configures TMUX session - test_host_ipsec
 
-### 4. ipsec_tunnel
+### 5. ipsec_tunnel
 
 ```bash
 python ipsec_accel.py ipsec_tunnel
@@ -390,7 +390,7 @@ python ipsec_accel.py ipsec_tunnel
 - Execute './ipsec stop' to stop the IPsec session.
 - To come out of the tmux session execute ctrl+b d 
 
-### 4. ipsec_performance
+### 6. ipsec_performance
 
 ```bash
 python ipsec_accel.py ipsec_performance
@@ -399,7 +399,7 @@ python ipsec_accel.py ipsec_performance
 - This will tune for performance testing.
 - Prerequisite: run setup, ipsec_transport or ipsec_tunnel.
 
-### 6. teardown
+### 7. teardown
 
 ```bash
 > python ipsec_accel.py teardown
@@ -407,7 +407,7 @@ python ipsec_accel.py ipsec_performance
 
 - This will tear down the complete OVS setup.
 
-### 7. create_script (optional step used for debug)
+### 8. create_script (optional step used for debug)
 
 - This option will create the configuration shell scripts in the localhost script directory
 - The localhost script directory path is specified in **host_path** field in **config.yaml**
@@ -447,7 +447,7 @@ total 100
 -rwxr-xr-x. 1 root root  460 Apr  1 12:26 sync_host_acc_date.sh
 ```
 
-### 8. copy_script (optional step used for debug)
+### 9. copy_script (optional step used for debug)
 
 - This option will create the configuration shell scripts in the localhost script directory (the path can be changed in **host_path:** in **config.yaml**) default path is *ipsec_accel/ipsec_accel_scripts**
 - It copies the scripts from localhost to IPU IMC (the path can be changed in **imc_path:** in **config.yaml**) default path is `/mnt/imc/p4_test`)
