@@ -173,6 +173,7 @@ ifconfig br-int-{vm_id} up
 
             vf_to_vm += f'''
 echo ""
+nmcli device set {vf_list[i]}  managed no
 ip addr add {vm_ip_list[vm_id]}/24 dev {vf_list[i]}
 ifconfig {vf_list[i]} up
 sleep 2
