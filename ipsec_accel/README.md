@@ -27,7 +27,7 @@
 - ipsec_transport : Setup IPsec configuration in transport mode.
 - ipsec_tunnel : Setup IPsec configuration in tunnel mode.
 - ipsec_performance : Tunes the interfaces for testing performance.
-- teardown : Cleanup the OVS bridge and P4 runtime configuration
+- teardown : Cleanup the  bridge and P4 runtime configuration
 - load_package default: Revert to default P4 package and node policy with IPU reboot.
 
 ## Supported Topology
@@ -178,7 +178,7 @@ source venv/bin/activate
 ### IPU Host 1
 
 ```bash
-> cd ipu-playbook/ovs_offload
+> cd ipu-playbook/ipsec_accel
 > cp config_host1.yaml config.yaml
 ```
 
@@ -249,7 +249,7 @@ test_params:
 ### IPU Host 2
 
 ```bash
-> cd ipu-playbook/ovs_offload
+> cd ipu-playbook/ipsec_accel/
 > cp config_host2.yaml config.yaml
 ```
 
@@ -420,7 +420,7 @@ python ipsec_accel.py teardown
 - Default localhost script directory path is **ipu-playbook/ipsec_accel/ipsec_accel_scripts**
 
 ```bash
-python ovs_offload_lnw.py create_script
+python ipsec_accel.py create_script
 ```
 
 ```bash
@@ -460,7 +460,7 @@ total 100
 - It copies the scripts from the IMC to the ACC (the path can be changed in **acc_path:** in **config.yaml**) default path is `/opt/`
 
 ```bash
-python ovs_offload_lnw.py copy_script
+python ipsec_accel.py copy_script
 ```
 
 ## IPsec acceleration setup with automation tool ipsec_accel.py
