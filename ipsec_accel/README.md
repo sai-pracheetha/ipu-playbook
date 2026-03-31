@@ -645,7 +645,7 @@ server finished responding =======================
 - Test with version iperf3.17 or later.
 - Example command where one host acts as a server and other as a client.
 
-  ```bash
+```bash
 Server Host 2
 iperf3 -s -B 11.0.0.2 -i 1 -p 6000
 ```
