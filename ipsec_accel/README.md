@@ -172,7 +172,7 @@ source venv/bin/activate
 - Update the file: config.yaml for the specific test setup. Change the management IP, username, and password for IMC and ACC if they are different.
 - Update the test_params section as required for the setup with the correct host, IMC and ACC script paths.
 - Update the test_params[p4_artifacts] field with the absolute path to fxp-net_linux-networking P4 artifacts folder in intel-ipu-host-components package. This is used to update the P4 package on the IMC.
-- Update the test_params [ipu_sdk_path] field with the absolute path of Intel_IPU_SDK-<build_number> which will be obtained by untarring intel-ipu-sdk-source-code-<version>.<build_number>.tar.gz. This is used for performance tuning.
+- Update the test_params [ipu_sdk_path] field with the absolute path of Intel_IPU_SDK-{build_number} which will be obtained by untarring intel-ipu-sdk-source-code-{version}.{build_number}.tar.gz. This is used for performance tuning.
 - Update the idpf_interface, vf_interfaces name in the config.yaml of both hosts if the interface names are different.
 
 ### IPU Host 1
@@ -345,6 +345,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
 ```
+
 ### 1. load_package
 
 - load_package linux_networking: Update the P4 package on the IMC with fxp-net_linux-networking.pkg, copy the artifacts to IMC and ACC, reboot the IMC for the config changes to take effect.
@@ -363,7 +364,6 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
 ```
-
 
 ### 2. setup
 
@@ -482,10 +482,9 @@ python ipsec_accel.py load_package linux_networking
 python ipsec_accel.py setup
 ```
 
-### STEP 3. Update config.yaml 
+### STEP 3. Update config.yaml
 
 Update the local_vxlan_tunnel_mac and remote_vxlan_mac name in the config.yaml of both hosts.
-
 
 ### STEP 4: IPsec Transport
 
@@ -494,7 +493,8 @@ Update the local_vxlan_tunnel_mac and remote_vxlan_mac name in the config.yaml o
 ```bash
 python ipsec_accel.py ipsec_transport
 ```
-- Attach to the TMUX session 
+
+- Attach to the TMUX session
 
 ```bash
 tmux a -t test_host_ipsec
@@ -555,7 +555,6 @@ cisp tx bad pkts: 0
 - Later after testing traffic and performance execute './ipsec stop' to stop the IPsec session.
 - To come out of the tmux session execute ctrl+b d  
 
-
 ### STEP 5: IPsec Performance
 
 - Run the commands below in the IPU localhost server to tune for performance.
@@ -586,7 +585,7 @@ iperf3 -t 30 -c 192.168.1.102 -B 192.168.1.101  -i 1  -P 8 -p 6000
 python ipsec_accel.py ipsec_tunnel
 ```
 
-- Attach to the TMUX session 
+- Attach to the TMUX session
 
 ```bash
 tmux a -t test_host_ipsec
@@ -658,7 +657,6 @@ iperf3 -t 30 -c 11.0.0.2 -B 11.0.0.1  -i 1  -P 8 -p 6000
 - Execute './ipsec stop' to stop the IPsec session.
 - To come out of the tmux session execute ctrl+b d  
 
-
 ### STEP 7: Revert to Default Configuration
 
 #### IPsec acceleration teardown with automation tool ipsec_accel.py
@@ -678,7 +676,7 @@ python ipsec_accel.py teardown
 python ipsec_accel.py load_package default
 ```
 
-## IPsec acceleration setup manual execution flow 
+## IPsec acceleration setup manual execution flow
 
 ### 1. Create and copy the script
 
@@ -688,7 +686,6 @@ Execute create_script and copy_script for scripts to be generated and avaialbe i
 python ipsec_accel.py create_script
 python ipsec_accel.py copy_script
 ```
-
 
 ### 2. IMC setup to manually load the P4 package
 
@@ -784,10 +781,9 @@ echo 8 > /sys/class/net/ens5f0/device/sriov_numvfs
 
 - Replace `ens5f0` above with the correct host IDPF interface to create 8 SR-IOV VFs on the host.
 
-
 ### 3. IPU P4 Artifacts on ACC
 
-- The scripts expects the P4 artifacts to be available in the directory  as mentioned in config.yaml under test_params [acc_path] in the ACC. By default it is /opt/. Make sure the artifacts corresponds to the release that runs on the IPU. 
+- The scripts expects the P4 artifacts to be available in the directory  as mentioned in config.yaml under test_params [acc_path] in the ACC. By default it is /opt/. Make sure the artifacts corresponds to the release that runs on the IPU.
 
 ```bash
 [root@ipu-acc ~]# ls /opt/fxp-net_linux-networking
@@ -1022,7 +1018,6 @@ host# ./perf_tune.sh
 - Server Host 2: iperf3 -s -B 192.168.1.102 -i 1 -p 6000
 - Client Host 1: iperf3 -t 30 -c 192.168.1.102 -B 192.168.1.101  -i 1  -P 8 -p 6000
 
-
 ### 13. Set up IPsec tunnel mode
 
 ```bash
@@ -1117,14 +1112,11 @@ Test performance
 - Server Host 2: iperf3 -s -B 11.0.0.2 -i 1 -p 6000
 - Client Host 1: iperf3 -t 30 -c 11.0.0.2 -B 11.0.0.1  -i 1  -P 8 -p 6000
 
-
 Stop IPsec application
 
 ```bash
 host# ./ipsec stop
 ```
-
-
 
 ### Optional:  Clean up the configs
 
